@@ -1,0 +1,755 @@
+# FastLED Project Rules for Cursor
+
+## Cursor Configuration
+
+### Post-Change Hooks
+Run linting after every code change:
+```yaml
+post_change_hooks:
+  - command: "bash lint"
+    description: "Run code formatting and linting"
+    working_directory: "."
+```
+
+## MCP Server Configuration
+This project includes a custom MCP server (`mcp_server.py`) that provides tools for:
+- Running tests with various options
+- Compiling examples for different platforms  
+- Code fingerprinting and change detection
+- Linting and formatting
+- Project information and status
+- **Build info analysis for platform-specific defines, compiler flags, and toolchain information**
+- **Symbol analysis for binary optimization (all platforms)**
+- Stack trace setup for enhanced debugging
+- **🚨 CRITICAL: `validate_completion` tool for background agents**
+
+To use the MCP server, run: `uv run mcp_server.py`
+
+**BACKGROUND AGENTS:** The MCP server includes a mandatory `validate_completion` tool that MUST be used before indicating task completion. This tool runs `bash test` and ensures all tests pass.
+
+## Project Structure
+- `src/` - Main FastLED library source code
+- `examples/` - Arduino examples demonstrating FastLED usage
+- `tests/` - Test files and infrastructure
+- `ci/` - Continuous integration scripts
+- `docs/` - Documentation
+
+## Key Commands
+- `uv run test.py` - Run all tests
+- `uv run test.py --cpp` - Run C++ tests only
+- `uv run test.py TestName` - Run specific C++ test
+  - For example: running test_xypath.cpp would be uv run test.py xypath
+- `./lint` - Run code formatting/linting
+- `uv run ci/ci-compile.py uno --examples Blink` - Compile examples for specific platform
+  - For example (uno): `uv run ci/ci-compile.py uno --examples Blink`
+  - For example (esp32dev): `uv run ci/ci-compile.py esp32dev --examples Blink`
+  - For example (esp8266): `uv run ci/ci-compile.py esp01 --examples Blink`
+  - For example (teensy31): `uv run ci/ci-compile.py teensy31 --examples Blink`
+- **Symbol Analysis** - Analyze binary size and optimization opportunities:
+  - `uv run ci/ci/symbol_analysis.py --board uno` - Analyze UNO platform
+  - `uv run ci/ci/symbol_analysis.py --board esp32dev` - Analyze ESP32 platform
+  - `uv run ci/demo_symbol_analysis.py` - Analyze all available platforms
+
+## Development Guidelines
+- Follow existing code style and patterns
+- Run tests before committing changes
+- Use the MCP server tools for common tasks
+- Check examples when making API changes
+
+## 🚨 CRITICAL REQUIREMENTS FOR BACKGROUND AGENTS 🚨
+
+### MANDATORY PRE-COMPLETION VALIDATION
+**ALL BACKGROUND AGENTS MUST FOLLOW THESE REQUIREMENTS BEFORE INDICATING COMPLETION:**
+
+1. **🚨 ALWAYS RUN `bash test` BEFORE INDICATING COMPLETION**
+   - This is MANDATORY and NON-NEGOTIABLE for all background agents
+   - The command `bash test` runs the full test suite including unit tests and compilation checks
+   - Background agents MUST NOT indicate they are "done" until ALL tests pass
+
+2. **🚨 USE MCP SERVER VALIDATION TOOL**
+   - Use the `validate_completion` tool from the MCP server: `uv run mcp_server.py`
+   - This tool runs `bash test` and validates that all tests pass
+   - Only indicate completion if this validation tool returns success
+
+3. **🚨 ZERO TOLERANCE FOR TEST FAILURES**
+   - If ANY test fails, the background agent MUST fix the issues before completion
+   - Do NOT indicate completion with failing tests
+   - Do NOT ignore test errors or warnings
+
+### Background Agent Completion Checklist:
+- [ ] All code changes have been made
+- [ ] `bash test` has been run and ALL tests pass
+- [ ] No compilation errors or warnings
+- [ ] MCP server `validate_completion` tool shows success
+- [ ] Only then indicate task completion
+
+**FAILURE TO FOLLOW THESE REQUIREMENTS WILL RESULT IN BROKEN CODE SUBMISSIONS.**
+
+### C++ Design Patterns
+**Shared Implementation Pattern:** When writing a lot of code that applies the same operation on a bunch of C++ objects, try and determine if those objects share a common base class or internal object. If so consider whether it's appropriate to move the implementation into a shared space.
+
+## Code Standards
+
+### Avoid std:: Prefixed Functions
+**DO NOT use `std::` prefixed functions or headers in the codebase.** This project provides its own STL-equivalent implementations under the `fl::` namespace.
+
+**Examples of what to avoid and use instead:**
+
+**Headers:**
+
+**Core Language Support:**
+- ❌ `#include <type_traits>` → ✅ `#include "fl/type_traits.h"`
+- ❌ `#include <algorithm>` → ✅ `#include "fl/algorithm.h"`
+- ❌ `#include <functional>` → ✅ `#include "fl/functional.h"`
+- ❌ `#include <initializer_list>` → ✅ `#include "fl/initializer_list.h"`
+
+**Containers:**
+- ❌ `#include <vector>` → ✅ `#include "fl/vector.h"`
+- ❌ `#include <map>` → ✅ `#include "fl/map.h"`
+- ❌ `#include <unordered_map>` → ✅ `#include "fl/hash_map.h"`
+- ❌ `#include <unordered_set>` → ✅ `#include "fl/hash_set.h"`
+- ❌ `#include <set>` → ✅ `#include "fl/set.h"`
+- ❌ `#include <span>` → ✅ `#include "fl/slice.h"`
+
+**Utilities & Smart Types:**
+- ❌ `#include <optional>` → ✅ `#include "fl/optional.h"`
+- ❌ `#include <variant>` → ✅ `#include "fl/variant.h"`
+- ❌ `#include <utility>` → ✅ `#include "fl/pair.h"` (for std::pair)
+- ❌ `#include <string>` → ✅ `#include "fl/string.h"`
+- ❌ `#include <memory>` → ✅ `#include "fl/scoped_ptr.h"` or `#include "fl/ptr.h"`
+
+**Stream/IO:**
+- ❌ `#include <sstream>` → ✅ `#include "fl/sstream.h"`
+
+**Threading:**
+- ❌ `#include <thread>` → ✅ `#include "fl/thread.h"`
+
+**Math & System:**
+- ❌ `#include <cmath>` → ✅ `#include "fl/math.h"`
+- ❌ `#include <cstdint>` → ✅ `#include "fl/stdint.h"`
+
+**Functions and classes:**
+- ❌ `std::move()` → ✅ `fl::move()`
+- ❌ `std::forward()` → ✅ `fl::forward()`
+- ❌ `std::vector` → ✅ `fl::vector`
+- ❌ `std::enable_if` → ✅ `fl::enable_if`
+
+**Why:** The project maintains its own implementations to ensure compatibility across all supported platforms and to avoid bloating the library with unnecessary STL dependencies.
+
+**Before using any standard library functionality, check if there's a `fl::` equivalent in the `src/fl/` directory first.**
+
+### Debug Printing
+**Use `FL_WARN` for debug printing throughout the codebase.** This ensures consistent debug output that works in both unit tests and live application testing.
+
+**Usage:**
+- ✅ `FL_WARN("Debug message: " << message);`
+- ❌ `FL_WARN("Value: %d", value);`
+
+**Why:** `FL_WARN` provides a unified logging interface that works across all platforms and testing environments, including unit tests and Arduino sketches.
+
+### Naming Conventions
+**Follow these naming conventions for consistency across the codebase:**
+
+**Simple Objects:**
+- ✅ Use lowercase class names for simple objects (e.g., `fl::vec2f`, `fl::point`, `fl::rect`)
+- ❌ Avoid: `fl::Vec2f`, `fl::Point`, `fl::Rect`
+
+**Complex Objects:**
+- ✅ Use CamelCase with uppercase first character for complex objects (e.g., `Raster`, `Controller`, `Canvas`)
+- ❌ Avoid: `raster`, `controller`, `canvas`
+
+**Pixel Types:**
+- ✅ Use ALL CAPS for pixel types (e.g., `CRGB`, `CHSV`, `HSV16`, `RGB24`)
+- ❌ Avoid: `crgb`, `Crgb`, `chsv`, `Chsv`
+
+**Why:** These conventions help distinguish between different categories of objects and maintain consistency with existing FastLED patterns.
+
+### Container Parameter Types
+**Prefer `fl::span<T>` over `fl::vector<T>` or arrays for function parameters.** `fl::span<T>` provides a non-owning view that automatically converts from various container types, making APIs more flexible and efficient.
+
+**Examples:**
+- ✅ `void processData(fl::span<const uint8_t> data)` - accepts arrays, vectors, and other containers
+- ❌ `void processData(fl::vector<uint8_t>& data)` - only accepts fl::Vector
+- ❌ `void processData(uint8_t* data, size_t length)` - requires manual length tracking
+
+**Benefits:**
+- **Automatic conversion:** `fl::span<T>` can automatically convert from `fl::vector<T>`, C-style arrays, and other container types
+- **Type safety:** Maintains compile-time type checking while being more flexible than raw pointers
+- **Performance:** Zero-cost abstraction that avoids unnecessary copying or allocation
+- **Consistency:** Provides a uniform interface for working with contiguous data
+
+**When to use `fl::vector<T>` instead:**
+- When you need ownership and dynamic resizing capabilities
+- When storing data as a class member that needs to persist
+
+**Why:** Using `fl::span<T>` for parameters makes functions more reusable and avoids forcing callers to convert their data to specific container types.
+
+### Exception Handling
+**DO NOT use try-catch blocks or C++ exception handling in the codebase.** FastLED is designed to work on embedded systems like Arduino where exception handling may not be available or desired due to memory and performance constraints.
+
+**Examples of what to avoid and use instead:**
+
+**Avoid Exception Handling:**
+- ❌ `try { ... } catch (const std::exception& e) { ... }` - Exception handling not available on many embedded platforms
+- ❌ `throw std::runtime_error("error message")` - Throwing exceptions not supported
+- ❌ `#include <exception>` or `#include <stdexcept>` - Exception headers not needed
+
+**Use Error Handling Alternatives:**
+- ✅ **Return error codes:** `bool function() { return false; }` or custom error enums
+- ✅ **Optional types:** `fl::optional<T>` for functions that may not return a value
+- ✅ **Assertions:** `FL_ASSERT(condition)` for debug-time validation
+- ✅ **Early returns:** `if (!valid) return false;` for error conditions
+- ✅ **Status objects:** Custom result types that combine success/failure with data
+
+**Examples of proper error handling:**
+```cpp
+// Good: Using return codes
+bool initializeHardware() {
+    if (!setupPins()) {
+        FL_WARN("Failed to setup pins");
+        return false;
+    }
+    return true;
+}
+
+// Good: Using fl::optional
+fl::optional<float> calculateValue(int input) {
+    if (input < 0) {
+        return fl::nullopt;  // No value, indicates error
+    }
+    return fl::make_optional(sqrt(input));
+}
+
+// Good: Using early returns
+void processData(const uint8_t* data, size_t len) {
+    if (!data || len == 0) {
+        FL_WARN("Invalid input data");
+        return;  // Early return on error
+    }
+    // Process data...
+}
+```
+
+**Why:** Many embedded platforms (especially Arduino-compatible boards) don't support C++ exceptions or have them disabled to save memory and improve performance. FastLED must work reliably across all supported platforms.
+
+## ⚠️ CRITICAL WARNING: C++ ↔ JavaScript Bindings
+
+**🚨 EXTREMELY IMPORTANT: DO NOT MODIFY FUNCTION SIGNATURES IN WEBASSEMBLY BINDINGS WITHOUT EXTREME CAUTION! 🚨**
+
+The FastLED project includes WebAssembly (WASM) bindings that bridge C++ and JavaScript code. **Changing function signatures in these bindings is a major source of runtime errors and build failures.**
+
+### Key Binding Files (⚠️ HIGH RISK ZONE ⚠️):
+- `src/platforms/wasm/js_bindings.cpp` - Main JavaScript interface via EM_ASM
+- `src/platforms/wasm/ui.cpp` - UI update bindings with extern "C" wrappers  
+- `src/platforms/wasm/active_strip_data.cpp` - Strip data bindings via EMSCRIPTEN_BINDINGS
+- `src/platforms/wasm/fs_wasm.cpp` - File system bindings via EMSCRIPTEN_BINDINGS
+
+### Before Making ANY Changes to These Files:
+
+1. **🛑 STOP and consider if the change is absolutely necessary**
+2. **📖 Read the warning comments at the top of each binding file**  
+3. **🧪 Test extensively on WASM target after any changes**
+4. **🔗 Verify both C++ and JavaScript sides remain synchronized**
+5. **📝 Update corresponding JavaScript code if function signatures change**
+
+### Common Binding Errors:
+- **Parameter type mismatches** (e.g., `const char*` vs `std::string`)
+- **Return type changes** that break JavaScript expectations
+- **Function name changes** without updating JavaScript calls
+- **Missing `extern "C"` wrappers** for EMSCRIPTEN_KEEPALIVE functions
+- **EMSCRIPTEN_BINDINGS macro changes** without updating JS Module calls
+
+### If You Must Modify Bindings:
+1. **Update BOTH sides simultaneously** (C++ and JavaScript)
+2. **Maintain backward compatibility** when possible
+3. **Add detailed comments** explaining the interface contract
+4. **Test thoroughly** with real WASM builds, not just compilation
+5. **Update documentation** and interface specs
+
+**Remember: The bindings are a CONTRACT between C++ and JavaScript. Breaking this contract causes silent failures and mysterious bugs that are extremely difficult to debug.**
+
+## Testing
+The project uses a comprehensive test suite including:
+- C++ unit tests
+- Platform compilation tests  
+- Code quality checks (ruff, clang-format)
+- Example compilation verification
+
+Use `bash test` as specified in user rules for running unit tests. For compilation tests, use `bash compile <platform> --examples <example>` (e.g., `bash compile uno --examples Blink`).
+
+**🚨 FOR BACKGROUND AGENTS:** Running `bash test` is MANDATORY before indicating completion. Use the MCP server `validate_completion` tool to ensure all tests pass before completing any task.
+
+## Debugging and Stack Traces
+
+### Stack Trace Setup
+The FastLED project supports enhanced debugging through stack trace functionality for crash analysis and debugging.
+
+**For Background Agents**: Use the MCP server tool `setup_stack_traces` to automatically install and configure stack trace support:
+
+```bash
+# Via MCP server (recommended for background agents)
+uv run mcp_server.py
+# Then use setup_stack_traces tool with method: "auto"
+```
+
+**Manual Installation**:
+
+**Ubuntu/Debian**:
+```bash
+sudo apt-get update
+sudo apt-get install -y libunwind-dev build-essential cmake
+```
+
+**CentOS/RHEL/Fedora**:
+```bash
+sudo yum install -y libunwind-devel gcc-c++ cmake  # CentOS/RHEL  
+sudo dnf install -y libunwind-devel gcc-c++ cmake  # Fedora
+```
+
+**macOS**:
+```bash
+brew install libunwind
+```
+
+### Available Stack Trace Methods
+1. **LibUnwind** (Recommended) - Enhanced stack traces with symbol resolution
+2. **Execinfo** (Fallback) - Basic stack traces using standard glibc
+3. **Windows** (On Windows) - Windows-specific debugging APIs
+4. **No-op** (Last resort) - Minimal crash handling
+
+The build system automatically detects and configures the best available option.
+
+### Testing Stack Traces
+```bash
+cd tests
+cmake . && make crash_test_standalone crash_test_execinfo
+
+# Test libunwind version
+./.build/bin/crash_test_standalone manual   # Manual stack trace
+./.build/bin/crash_test_standalone nullptr  # Crash test
+
+# Test execinfo version  
+./.build/bin/crash_test_execinfo manual     # Manual stack trace
+./.build/bin/crash_test_execinfo nullptr    # Crash test
+```
+
+### Using in Code
+```cpp
+#include "tests/crash_handler.h"
+
+int main() {
+    setup_crash_handler();  // Enable crash handling
+    // Your code here...
+    return 0;
+}
+```
+
+**For Background Agents**: Always run the `setup_stack_traces` MCP tool when setting up a new environment to ensure proper debugging capabilities are available.
+
+## Platform Build Information Analysis
+
+The FastLED project includes comprehensive tools for analyzing platform-specific build information, including preprocessor defines, compiler flags, and toolchain paths from `build_info.json` files generated during compilation.
+
+### Overview
+
+Platform build information is stored in `.build/{platform}/build_info.json` files that are automatically generated when compiling for any platform. These files contain:
+
+- **Platform Defines** - Preprocessor definitions (`#define` values) specific to each platform
+- **Compiler Information** - Paths, flags, and types for C/C++ compilers
+- **Toolchain Aliases** - Tool paths for gcc, g++, ar, objcopy, nm, etc.
+- **Build Configuration** - Framework, build type, and other settings
+
+### Quick Start
+
+#### 1. Generate Build Information
+
+Before analyzing, ensure you have compiled the platform:
+
+```bash
+# Compile a platform to generate build_info.json
+uv run ci/ci-compile.py uno --examples Blink
+uv run ci/ci-compile.py esp32dev --examples Blink
+```
+
+This creates `.build/{platform}/build_info.json` with all platform information.
+
+#### 2. Analyze Platform Defines
+
+**Get platform-specific preprocessor defines:**
+```bash
+# Command line tool
+python3 ci/ci/build_info_analyzer.py --board uno --show-defines
+
+# Via MCP server
+uv run mcp_server.py
+# Use build_info_analysis tool with: board="uno", show_defines=true
+```
+
+**Example output for UNO:**
+```
+📋 Platform Defines for UNO:
+  PLATFORMIO=60118
+  ARDUINO_AVR_UNO
+  F_CPU=16000000L
+  ARDUINO_ARCH_AVR
+  ARDUINO=10808
+  __AVR_ATmega328P__
+```
+
+**Example output for ESP32:**
+```
+📋 Platform Defines for ESP32DEV:
+  ESP32=ESP32
+  ESP_PLATFORM
+  F_CPU=240000000L
+  ARDUINO_ARCH_ESP32
+  IDF_VER="v5.3.2-174-g083aad99cf-dirty"
+  ARDUINO_ESP32_DEV
+  # ... and 23 more defines
+```
+
+#### 3. Compare Platforms
+
+**Compare defines between platforms:**
+```bash
+# Command line
+python3 ci/ci/build_info_analyzer.py --compare uno esp32dev
+
+# Via MCP 
+# Use build_info_analysis tool with: board="uno", compare_with="esp32dev"
+```
+
+Shows differences and commonalities between platform defines.
+
+### Available Tools
+
+#### Command Line Tool
+
+**Basic Usage:**
+```bash
+# List available platforms
+python3 ci/ci/build_info_analyzer.py --list-boards
+
+# Show platform defines
+python3 ci/ci/build_info_analyzer.py --board uno --show-defines
+
+# Show compiler information
+python3 ci/ci/build_info_analyzer.py --board esp32dev --show-compiler
+
+# Show toolchain aliases
+python3 ci/ci/build_info_analyzer.py --board teensy31 --show-toolchain
+
+# Show everything
+python3 ci/ci/build_info_analyzer.py --board digix --show-all
+
+# Compare platforms
+python3 ci/ci/build_info_analyzer.py --compare uno esp32dev
+
+# JSON output for automation
+python3 ci/ci/build_info_analyzer.py --board uno --show-defines --json
+```
+
+#### MCP Server Tool
+
+**For Background Agents**, use the MCP server `build_info_analysis` tool:
+
+```bash
+# Start MCP server
+uv run mcp_server.py
+
+# Use build_info_analysis tool with parameters:
+# - board: "uno", "esp32dev", "teensy31", etc. or "list" to see available
+# - show_defines: true/false (default: true)
+# - show_compiler: true/false  
+# - show_toolchain: true/false
+# - show_all: true/false
+# - compare_with: "other_board_name" for comparison
+# - output_json: true/false for programmatic use
+```
+
+### Supported Platforms
+
+The build info analysis works with **ANY platform** that generates a `build_info.json` file:
+
+**Embedded Platforms:**
+- ✅ **UNO (AVR)** - 8-bit microcontroller (6 defines)
+- ✅ **ESP32DEV** - WiFi-enabled 32-bit platform (29 defines)
+- ✅ **ESP32S3, ESP32C3, ESP32C6** - All ESP32 variants
+- ✅ **TEENSY31, TEENSYLC** - ARM Cortex-M platforms
+- ✅ **DIGIX, BLUEPILL** - ARM Cortex-M3 platforms
+- ✅ **STM32, NRF52** - Various ARM platforms
+- ✅ **RPIPICO, RPIPICO2** - Raspberry Pi Pico platforms
+- ✅ **ATTINY85, ATTINY1616** - Small AVR microcontrollers
+
+### Use Cases
+
+#### For Code Development
+
+**Understanding Platform Differences:**
+```bash
+# See what defines are available for conditional compilation
+python3 ci/ci/build_info_analyzer.py --board esp32dev --show-defines
+
+# Compare two platforms to understand differences
+python3 ci/ci/build_info_analyzer.py --compare uno esp32dev
+```
+
+**Compiler and Toolchain Information:**
+```bash
+# Get compiler paths and flags for debugging builds
+python3 ci/ci/build_info_analyzer.py --board teensy31 --show-compiler
+
+# Get toolchain paths for symbol analysis
+python3 ci/ci/build_info_analyzer.py --board digix --show-toolchain
+```
+
+#### For Automation
+
+**JSON output for scripts:**
+```bash
+# Get defines as JSON for processing
+python3 ci/ci/build_info_analyzer.py --board uno --show-defines --json
+
+# Get all build info as JSON
+python3 ci/ci/build_info_analyzer.py --board esp32dev --show-all --json
+```
+
+### Integration with Other Tools
+
+Build info analysis integrates with other FastLED tools:
+
+1. **Symbol Analysis** - Uses build_info.json to find toolchain paths
+2. **Compilation** - Generated automatically during example compilation  
+3. **Testing** - Provides platform context for test results
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **"No boards with build_info.json found"**
+   - **Solution:** Compile a platform first: `uv run ci/ci-compile.py uno --examples Blink`
+
+2. **"Board key not found in build_info.json"**
+   - **Solution:** Check available boards: `python3 ci/ci/build_info_analyzer.py --list-boards`
+
+3. **"Build info not found for platform"**
+   - **Solution:** Ensure the platform compiled successfully and check `.build/{board}/build_info.json` exists
+
+### Best Practices
+
+1. **Always compile first** before analyzing build information
+2. **Use comparison feature** to understand platform differences
+3. **Check defines** when adding platform-specific code
+4. **Use JSON output** for automated processing and CI/CD
+5. **Combine with symbol analysis** for complete platform understanding
+
+**For Background Agents:** Use the MCP server `build_info_analysis` tool for consistent access to platform build information and proper error handling.
+
+## Symbol Analysis for Binary Optimization
+
+The FastLED project includes comprehensive symbol analysis tools to identify optimization opportunities and understand binary size allocation across all supported platforms.
+
+### Overview
+
+Symbol analysis examines compiled ELF files to:
+- **Identify large symbols** that may be optimization targets
+- **Understand memory allocation** across different code sections
+- **Find unused features** that can be eliminated to reduce binary size
+- **Compare symbol sizes** between different builds or platforms
+- **Provide optimization recommendations** based on actual usage patterns
+
+### Supported Platforms
+
+The symbol analysis tools work with **ANY platform** that generates a `build_info.json` file, including:
+
+**Embedded Platforms:**
+- ✅ **UNO (AVR)** - Small 8-bit microcontroller (typically ~3-4KB symbols)
+- ✅ **ESP32DEV (Xtensa)** - WiFi-enabled 32-bit platform (typically ~200-300KB symbols)
+- ✅ **ESP32S3, ESP32C3, ESP32C6, etc.** - All ESP32 variants supported
+
+**ARM Platforms:**
+- ✅ **TEENSY31 (ARM Cortex-M4)** - High-performance 32-bit (typically ~10-15KB symbols)
+- ✅ **TEENSYLC (ARM Cortex-M0+)** - Low-power ARM platform (typically ~8-10KB symbols)
+- ✅ **DIGIX (ARM Cortex-M3)** - Arduino Due compatible (typically ~15-20KB symbols)
+- ✅ **STM32 (ARM Cortex-M3)** - STMicroelectronics platform (typically ~12-18KB symbols)
+
+**And many more!** Any platform with toolchain support and `build_info.json` generation.
+
+### Quick Start
+
+#### 1. Prerequisites
+
+Before running symbol analysis, ensure you have compiled the platform:
+
+```bash
+# Compile platform first (required step)
+uv run ci/ci-compile.py uno --examples Blink
+uv run ci/ci-compile.py esp32dev --examples Blink
+uv run ci/ci-compile.py teensy31 --examples Blink
+```
+
+This generates the required `.build/{platform}/build_info.json` file and ELF binary.
+
+#### 2. Run Symbol Analysis
+
+**Analyze specific platform:**
+```bash
+uv run ci/ci/symbol_analysis.py --board uno
+uv run ci/ci/symbol_analysis.py --board esp32dev
+uv run ci/ci/symbol_analysis.py --board teensy31
+```
+
+**Analyze all available platforms at once:**
+```bash
+uv run ci/demo_symbol_analysis.py
+```
+
+**Using MCP Server (Recommended for Background Agents):**
+```bash
+# Use MCP server tools
+uv run mcp_server.py
+# Then use symbol_analysis tool with board: "uno" or "auto"
+# Or use symbol_analysis tool with run_all_platforms: true
+```
+
+### Analysis Output
+
+Symbol analysis provides detailed reports including:
+
+**Summary Information:**
+- **Total symbols count** and **total size**
+- **Symbol type breakdown** (text, data, bss, etc.)
+- **Platform-specific details** (toolchain, ELF file location)
+
+**Largest Symbols List:**
+- **Top symbols by size** for optimization targeting
+- **Demangled C++ names** for easy identification
+- **Size in bytes** and **percentage of total**
+
+**Optimization Recommendations:**
+- **Feature analysis** - unused features that can be disabled
+- **Size impact estimates** - potential savings from removing features
+- **Platform-specific suggestions** based on symbol patterns
+
+### Example Analysis Results
+
+**UNO Platform (Small embedded):**
+```
+================================================================================
+UNO SYMBOL ANALYSIS REPORT
+================================================================================
+
+SUMMARY:
+  Total symbols: 51
+  Total symbol size: 3767 bytes (3.7 KB)
+
+LARGEST SYMBOLS (sorted by size):
+   1.  1204 bytes - ClocklessController<...>::showPixels(...)
+   2.   572 bytes - CFastLED::show(unsigned char)
+   3.   460 bytes - main
+   4.   204 bytes - CPixelLEDController<...>::show(...)
+```
+
+**ESP32 Platform (Feature-rich):**
+```
+================================================================================
+ESP32DEV SYMBOL ANALYSIS REPORT  
+================================================================================
+
+SUMMARY:
+  Total symbols: 2503
+  Total symbol size: 237092 bytes (231.5 KB)
+
+LARGEST SYMBOLS (sorted by size):
+   1. 12009 bytes - _vfprintf_r
+   2. 11813 bytes - _svfprintf_r
+   3.  8010 bytes - _vfiprintf_r
+   4.  4192 bytes - port_IntStack
+```
+
+### Advanced Features
+
+#### JSON Output
+Save detailed analysis results for programmatic processing:
+```bash
+uv run symbol_analysis.py --board esp32dev --output-json
+# Results saved to: .build/esp32dev_symbol_analysis.json
+```
+
+#### Batch Analysis
+Analyze multiple platforms in sequence:
+```bash
+for board in uno esp32dev teensy31; do
+    uv run symbol_analysis.py --board $board
+done
+```
+
+#### Integration with Build Systems
+The symbol analysis can be integrated into automated build processes:
+```python
+# In your Python build script
+import subprocess
+result = subprocess.run(['uv', 'run', 'symbol_analysis.py', '--board', 'uno'], 
+                       capture_output=True, text=True)
+```
+
+### MCP Server Tools
+
+**For Background Agents**, use the MCP server tools for symbol analysis:
+
+1. **Generic Symbol Analysis** (`symbol_analysis` tool):
+   - Works with **any platform** (UNO, ESP32, Teensy, STM32, etc.)
+   - Auto-detects available platforms from `.build/` directory
+   - Can analyze single platform or all platforms simultaneously
+   - Provides comprehensive usage instructions
+
+2. **ESP32-Specific Analysis** (`esp32_symbol_analysis` tool):
+   - **ESP32 platforms only** with FastLED-focused filtering
+   - Includes feature analysis and optimization recommendations
+   - FastLED-specific symbol identification and grouping
+
+**Usage via MCP:**
+```bash
+# Start MCP server
+uv run mcp_server.py
+
+# Use symbol_analysis tool with parameters:
+# - board: "uno", "esp32dev", or "auto"
+# - run_all_platforms: true/false
+# - output_json: true/false
+```
+
+### Troubleshooting
+
+**Common Issues:**
+
+1. **"build_info.json not found"**
+   - **Solution:** Compile the platform first: `uv run ci/ci-compile.py {board} --examples Blink`
+
+2. **"ELF file not found"**
+   - **Solution:** Ensure compilation completed successfully and check `.build/{board}/` directory
+
+3. **"Tool not found"** (nm, c++filt, etc.)
+   - **Solution:** The platform toolchain isn't installed or configured properly
+   - **Check:** Verify PlatformIO platform installation: `uv run pio platform list`
+
+4. **"No symbols found"**
+   - **Solution:** The ELF file may be stripped or compilation failed
+   - **Check:** Verify ELF file exists and has debug symbols
+
+**Debug Mode:**
+```bash
+# Run with verbose Python output for debugging
+uv run python -v ci/ci/symbol_analysis.py --board uno
+```
+
+### Best Practices
+
+1. **Always compile first** before running symbol analysis
+2. **Use consistent examples** (like Blink) for size comparisons
+3. **Run analysis on clean builds** to avoid cached/incremental build artifacts
+4. **Compare results across platforms** to understand feature scaling
+5. **Focus on the largest symbols first** for maximum optimization impact
+6. **Use JSON output for automated processing** and trend analysis
+
+**For Background Agents:** Always use the MCP server `symbol_analysis` tool for consistent results and proper error handling.

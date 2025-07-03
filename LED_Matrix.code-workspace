@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../Documents/GitHub/MeshModule"
+		},
+		{
+			"name": "LED_Matrix",
+			"path": "."
+		}
+	],
+	"settings": {
+		"liveServer.settings.port": 5501,
+		"files.associations": {
+			"cstdint": "c",
+			"cstdlib": "c"
+		}
+	}
+}
