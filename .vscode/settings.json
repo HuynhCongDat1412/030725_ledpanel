@@ -1,5 +1,8 @@
 {
     "files.associations": {
-        "new": "cpp"
+        "new": "cpp",
+        "tuple": "cpp",
+        "mutex": "cpp",
+        "streambuf": "cpp"
     }
 }

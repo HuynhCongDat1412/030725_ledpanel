@@ -69,6 +69,7 @@ enum PANEL_SCAN_TYPE {
 	FOUR_SCAN_40PX_HIGH,			///< Four-scan mode, 40-pixel high panels.	
 	FOUR_SCAN_40_80PX_HFARCAN,		///< Four-scan mode, 40-pixel high, 80px wide panel. Weird mapping: https://github.com/mrcodetastic/ESP32-HUB75-MatrixPanel-DMA/issues/759
 	FOUR_SCAN_64PX_HIGH,			///< Four-scan mode, 64-pixel high panels.
+	USER_CUSTOM_SCAN,			///< User-defined custom scan type.
 };
 
 /**
@@ -103,7 +104,7 @@ template <PANEL_SCAN_TYPE ScanType>
 struct ScanTypeMapping {
 	static constexpr VirtualCoords apply(VirtualCoords coords, int panel_pixel_base) 
 	{
-		//log_v("ScanTypeMapping: coords.x: %d, coords.y: %d, virt_y: %d, pixel_base: %d", coords.x, coords.y, virt_y, panel_pixel_base);
+		//log_v("ScanTypeMapping: coords.x: %d, coords.y: %: %d, pixel_base: %d", coords.x, coords.y, virt_y, panel_pixel_base);
 
 		// FOUR_SCAN_16PX_HIGH
 		if constexpr (ScanType == FOUR_SCAN_16PX_HIGH) 
@@ -161,6 +162,16 @@ struct ScanTypeMapping {
 			}
 			
 			coords.y = (coords.y >> 4) * 8 + (coords.y & 0b00000111);
+		}
+		else if constexpr (ScanType == USER_CUSTOM_SCAN) {
+			int x = coords.x;
+			int y = coords.y;
+			// if(coords.x%8>3) coords.y +=4;
+			if ((coords.y & 0b111) > 3) coords.x += 8;
+			// int group = coords.y % 8;
+			// int block = coords.y / 8;			
+			// coords.y = group + block * 8; // bạn có thể hoán đổi lại theo wiring thực tế
+			// coords.y = (coords.y & 0b111) + ((coords.y >> 3) << 3);
 		}
 
 		// For STANDARD_TWO_SCAN / NORMAL_ONE_SIXTEEN no remapping is done.

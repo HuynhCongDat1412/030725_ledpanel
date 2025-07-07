@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><title>ESP32 Line Control</title></head>
+<style>
+    .container {
+        width: 100%;
+        max-width: 600px;
+        margin: auto;
+        /* text-align: center; */
+    }
+
+    .row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 10px;
+    }
+
+    .col {
+        flex: 1;
+        padding: 10px;
+    }
+    .col-3 {
+        flex: 0 0 25%;
+    }
+    .col-6 {
+        flex: 0 0 50%;
+    }
+    .col-9 {
+        flex: 0 0 75%;
+    }
+    
+    .btn-success {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 10px 30px;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+    }
+</style>    
+<body>
+  <h2>Motor Control</h2>
+  <div class="row">
+    <div class="col">
+        <button id="toggleBtn" class="btn-success" onclick="toggleBtn()">BẬT</button>
+    </div>
+  </div>
+  <div class="container">
+    <div class="row">
+        <div class="col">
+            <label for="motor1">LEFT: <span id="motor1_val">0</span></label><br>
+            <input type="range" onchange="send_speed()" id="motor1" min="0" max="100" value="0" oninput="motor1_val.innerText=this.value"> 
+            
+        </div>
+    <div class="col" >
+        <input type="checkbox" id="motor_sync" onchange="send_speed()" checked>
+        <span style="margin-left: 8px;">SYNC</span>
+    </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <label for="motor2">RIGHT: <span id="motor2_val">0</span></label><br>
+            <input type="range" onchange="send_speed()" id="motor2" min="0" max="100" value="0" oninput="motor2_val.innerText=this.value">
+        </div>
+  </div>
+  <div class="container">
+    <div class="row">
+        <div class="col-3">
+            <label for="P">P</label>
+            <input style="margin: 10px;" type="number" id="P" value="0" step="0.1" min="0" max="10"><br>
+        </div>
+        <div class="col-6">
+            <input type="button" value="Send" onclick="send_pid()">
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3">
+            <label for="I">I</label>
+            <input style="margin: 10px;" type="number" id="I" value="0" step="0.1" min="0" max="10"><br>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-3">
+            <label for="D">D</label>
+            <input  style="margin: 10px;" type="number" id="D" value="0" step="0.1" min="0" max="10"><br>
+        </div>
+    </div>
+        
+  </div>
+    
+  <div class="row">
+    <div class="col">
+         <h3>Sensor Values:</h3>
+        <div id="sensors"></div>  
+    </div>
+  </div>
+ 
+
+<script>
+let socket = new WebSocket("ws://" + location.hostname + ":81/");
+
+socket.onmessage = function(event) {
+  let data = JSON.parse(event.data);
+  if (data.sensor) {
+    document.getElementById("sensors").innerText = "[" + data.sensor.join(", ") + "]";
+  }
+};
+
+function sendData() {
+  let txt = document.getElementById("data").value;
+  socket.send(txt);
+}
+function send_speed() {
+     let sync = document.getElementById("motor_sync").checked;
+    let motor1 = document.getElementById("motor1").value;
+    let motor2 = document.getElementById("motor2").value;
+    if (sync) {
+        motor2 = motor1;
+        document.getElementById("motor2").value = motor1;
+        document.getElementById("motor2_val").innerText = motor1;
+    }
+    let data = {
+        cmd: "motor",
+        motor1: parseInt(motor1),
+        motor2: parseInt(motor2)
+    };
+    document.getElementById("data").value = JSON.stringify(data);
+    socket.send(JSON.stringify(data));
+    document.getElementById("motor1_val").innerText = motor1;
+    document.getElementById("motor2_val").innerText = motor2;
+}
+
+function send_pid() {
+    let P = parseFloat(document.getElementById("P").value);
+    let I = parseFloat(document.getElementById("I").value);
+    let D = parseFloat(document.getElementById("D").value);
+    socket.send(JSON.stringify({ cmd: "pid", P: P, I: I, D: D }));
+}
+function motor_setEqual() {
+  if (document.getElementById("motor_sync").checked) {
+    let motor1 = document.getElementById("motor1").value;
+    document.getElementById("motor2").value = motor1;
+    document.getElementById("motor2_val").innerText = motor1;
+    socket.send(JSON.stringify({
+        motor1: parseInt(motor1),
+        motor2: parseInt(motor1)
+    }));
+  }
+}
+function toggleBtn() {
+  let btn = document.getElementById("toggleBtn");
+  if (btn.classList.contains("btn-success")) {
+    btn.classList.remove("btn-success");
+    btn.classList.add("btn-danger");
+    btn.innerText = "TẮT";
+    // Gửi lệnh tắt nếu cần
+    socket.send(JSON.stringify({cmd: "reset", state: "off"}));
+  } else {
+    btn.classList.remove("btn-danger");
+    btn.classList.add("btn-success");
+    btn.innerText = "BẬT";
+    // Gửi lệnh bật nếu cần
+    // socket.send(JSON.stringify({cmd: "power", state: "on"}));
+  }
+  }
+</script>
+</body>
+</html>

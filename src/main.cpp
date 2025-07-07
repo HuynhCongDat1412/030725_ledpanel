@@ -21,8 +21,8 @@
 #define E_PIN -1
 
 // ==== Panel config ====
-#define PANEL_RES_X 104//104//64      // Số pixel ngang của panel
-#define PANEL_RES_Y 52//52//32      // Số pixel dọc của panel
+#define PANEL_RES_X 64//104//64      // Số pixel ngang của panel
+#define PANEL_RES_Y 32//52//32      // Số pixel dọc của panel
 
 // ==== Scan type mapping ====
 #define PANEL_SCAN_TYPE FOUR_SCAN_32PX_HIGH // hoặc FOUR_SCAN_64PX_HIGH tùy panel thực tế
@@ -80,4 +80,5 @@ void setup() {
 }
 
 void loop() {
-  // Không làm gì trong loop
+  // Không làm gì trong loo
+  }
