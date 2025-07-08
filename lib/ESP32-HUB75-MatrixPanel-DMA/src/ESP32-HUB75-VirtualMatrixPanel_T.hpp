@@ -69,7 +69,7 @@ enum PANEL_SCAN_TYPE {
 	FOUR_SCAN_40PX_HIGH,			///< Four-scan mode, 40-pixel high panels.	
 	FOUR_SCAN_40_80PX_HFARCAN,		///< Four-scan mode, 40-pixel high, 80px wide panel. Weird mapping: https://github.com/mrcodetastic/ESP32-HUB75-MatrixPanel-DMA/issues/759
 	FOUR_SCAN_64PX_HIGH,			///< Four-scan mode, 64-pixel high panels.
-	USER_CUSTOM_SCAN,			///< User-defined custom scan type.
+	CUSTOM_SCAN,					///< Custom scan type for specific panel configurations.
 };
 
 /**
@@ -104,7 +104,7 @@ template <PANEL_SCAN_TYPE ScanType>
 struct ScanTypeMapping {
 	static constexpr VirtualCoords apply(VirtualCoords coords, int panel_pixel_base) 
 	{
-		//log_v("ScanTypeMapping: coords.x: %d, coords.y: %: %d, pixel_base: %d", coords.x, coords.y, virt_y, panel_pixel_base);
+		//log_v("ScanTypeMapping: coords.x: %d, coords.y: %d, virt_y: %d, pixel_base: %d", coords.x, coords.y, virt_y, panel_pixel_base);
 
 		// FOUR_SCAN_16PX_HIGH
 		if constexpr (ScanType == FOUR_SCAN_16PX_HIGH) 
@@ -163,18 +163,17 @@ struct ScanTypeMapping {
 			
 			coords.y = (coords.y >> 4) * 8 + (coords.y & 0b00000111);
 		}
-		else if constexpr (ScanType == USER_CUSTOM_SCAN) {
-			int x = coords.x;
-			int y = coords.y;
-			// if(coords.x%8>3) coords.y +=4;
-			if ((coords.y & 0b111) > 3) coords.x += 8;
-			// int group = coords.y % 8;
-			// int block = coords.y / 8;			
-			// coords.y = group + block * 8; // bạn có thể hoán đổi lại theo wiring thực tế
-			// coords.y = (coords.y & 0b111) + ((coords.y >> 3) << 3);
-		}
+		else if constexpr (ScanType == CUSTOM_SCAN){
+			
+			
+			// else if (coods.x==0 && coords.y%8 <3){
 
+			// }
+			// Nếu cần đảo x
+			// coords.x = PANEL_WIDTH - 1 - coords.x;
+		}
 		// For STANDARD_TWO_SCAN / NORMAL_ONE_SIXTEEN no remapping is done.
+
 		return coords;
 	}
 };
@@ -482,9 +481,10 @@ public:
 		//log_d("calcCoords post-chain: virt_x: %d, virt_y: %d", virt_x, virt_y);  
 
 		// --- Apply physical LED panel scan–type mapping / fix ---
-		coords = ScanTypeMapping::apply(coords, panel_pixel_base);
-
-	}
+		coords = ScanTypeMapping::apply(coords, panel_pixel_base);	
+		
+		Serial.printf("DEBUG: virt_y = %d → mapped coords.y = %d\n", virt_y, coords.y);
+}
 
 #ifdef NO_GFX
 	inline uint16_t width()	 const { return _virtual_res_x; }

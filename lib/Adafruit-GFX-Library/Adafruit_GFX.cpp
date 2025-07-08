@@ -1810,7 +1810,7 @@ void GFXcanvas1::drawPixel(int16_t x, int16_t y, uint16_t color) {
       x = WIDTH - 1 - x;
       y = HEIGHT - 1 - y;
       break;
-    case 3:
+    MR_0 3:
       t = x;
       x = y;
       y = HEIGHT - 1 - t;
@@ -1832,6 +1832,11 @@ void GFXcanvas1::drawPixel(int16_t x, int16_t y, uint16_t color) {
   }
 }
 
+void pixelMapping(int16_t x, int16_t y)
+{
+  int
+  if (x/8)
+}
 /**********************************************************************/
 /*!
         @brief    Get the pixel color value at a given coordinate

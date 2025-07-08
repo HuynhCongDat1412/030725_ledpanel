@@ -2,7 +2,7 @@
 #include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
 #include <ESP32-HUB75-VirtualMatrixPanel_T.hpp>
 
-// ==== Pin mapping (giữ nguyên như bạn đang dùng) ====
+// ==== Pin mapping ====
 #define R1_PIN 3
 #define G1_PIN 10
 #define B1_PIN 11
@@ -21,28 +21,24 @@
 #define E_PIN -1
 
 // ==== Panel config ====
-#define PANEL_RES_X 64//104//64      // Số pixel ngang của panel
-#define PANEL_RES_Y 32//52//32      // Số pixel dọc của panel
+#define PANEL_RES_X 64
+#define PANEL_RES_Y 64
 
-// ==== Scan type mapping ====
-#define PANEL_SCAN_TYPE FOUR_SCAN_32PX_HIGH // hoặc FOUR_SCAN_64PX_HIGH tùy panel thực tế
+#define PANEL_SCAN_TYPE FOUR_SCAN_32PX_HIGH//FOUR_SCAN_32PX_HIGH // Change this to your desired scan type
 using MyScanTypeMapping = ScanTypeMapping<PANEL_SCAN_TYPE>;
 
-// ==== Khai báo đối tượng DMA và VirtualPanel ====
 MatrixPanel_I2S_DMA *dma_display = nullptr;
 VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>* virtualDisp = nullptr;
-
-// ==== Màu sắc mẫu ====
-uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE;
+uint16_t myBLACK, myWHITE;
 
 void setup() {
   Serial.begin(115200);
   delay(2000);
-  Serial.println("=== VirtualMatrixPanel Example 3: Single 1/4 Scan Panel ===");
+  Serial.println("=== VirtualMatrixPanel: STANDARD_TWO_SCAN, 128x32 ===");
 
   HUB75_I2S_CFG mxconfig(
-    PANEL_RES_X * 2,
-    PANEL_RES_Y / 2,
+    PANEL_RES_X*2,
+    PANEL_RES_Y/2,
     1,
     HUB75_I2S_CFG::i2s_pins{
       R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN,
@@ -66,19 +62,28 @@ void setup() {
 
   // In 4 dòng chữ
   virtualDisp->setTextColor(myWHITE);
-  virtualDisp->setCursor(0, 0);
-  virtualDisp->print("dma display");
-
-  virtualDisp->setCursor(0, 8);
-  virtualDisp->print("*********");
-
-  virtualDisp->setCursor(0, 16);
-  virtualDisp->print("*       *");
-
-  virtualDisp->setCursor(0, 24);
-  virtualDisp->print("hello world");
+  virtualDisp->clearScreen();
+    virtualDisp->drawLine(0,0,3, 0, virtualDisp->color565(0, 255, 255));
+    virtualDisp->drawLine(4,0,7, 0, virtualDisp->color565(0, 255, 0));
+    virtualDisp->drawLine(12,0,15, 0, virtualDisp->color565(255, 0, 0));
+    virtualDisp->drawLine(16,0,19, 0, virtualDisp->color565(255, 0, 0));
+    virtualDisp->drawLine(24,0,27, 0, virtualDisp->color565(255, 255, 0));
+    // virtualDisp->drawLine(6,0,PANEL_RES_X, 0, virtualDisp->color565(255, 255, 0));
+    virtualDisp->flipDMABuffer();
 }
 
-void loop() {
-  // Không làm gì trong loo
+void handle_serial () {
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+
+    int row = input.toInt();
+    virtualDisp->clearScreen();
+    virtualDisp->drawLine(5, row, 5, PANEL_RES_Y - 1, virtualDisp->color565(255, 255, 255));
+    virtualDisp->flipDMABuffer();    
   }
+}
+void loop() {
+  
+  
+}
