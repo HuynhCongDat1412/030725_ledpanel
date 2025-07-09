@@ -483,7 +483,7 @@ public:
 		// --- Apply physical LED panel scan–type mapping / fix ---
 		coords = ScanTypeMapping::apply(coords, panel_pixel_base);	
 		
-		Serial.printf("DEBUG: virt_y = %d → mapped coords.y = %d\n", virt_y, coords.y);
+		// Serial.printf("DEBUG: virt_y = %d → mapped coords.y = %d\n", virt_y, coords.y);
 }
 
 #ifdef NO_GFX

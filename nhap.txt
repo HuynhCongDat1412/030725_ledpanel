@@ -1,0 +1,58 @@
+- Xong vẽ hình bằng web
+- lưu file config rồi mở lại file config đó
+
+-CHƯA ĐEM WEB QUA FOLDER KHÁC ĐƯỢC
+
+- Xử lí phần chữ
+
+- KHI RELOAD LAI ESP CŨNG RESET LẠI WEB (done)
+
+- KHI VẼ XONG HÌNH TRÊN LED PANEL MỚI GỬI CHO WEB ĐỂ VẼ HÌNH, NẾU KHÔNG SẼ VẼ SAI, CÁI KHÔNG CÓ TRONG TIN NHẮN NHƯNG ĐÃ ĐƯỢC LƯU TRONG FILE NÊN VẪN VẼ (done)
+
+- Nên đặt 1 hàm chung là draw_MSG()
+    -> Trong hàm sẽ có phân tách tin nhắn doc
+    -> sau đó gửi đi cho vẽ Shape
+    -> sau đó vẽ text
+
+-Đã viết chữ ổn
+- tô màu 
+    + Thêm 1 nút chọn màu cho cả phần shape và phần text
+    + cập nhật thêm phần tin nhắn gửi đi
+
+    [[{"type":1,"data":[12,12,20,20],"color":"#ec1313"}],[[{"xy":[1,1],"id":1,"color":"#2bee41"},{"xy":[20,20],"id":2,"color":"#d5d908"}]]]
+
+
+
+viet 1 ham mapping vao cái textContent
+
+
+lưu data
+-
+[
+    {
+        "data": "noidung1",
+        "info": [shapeIndex,row]
+    }
+    {
+        "data": "noidung2",
+        "info": [shapeIndex,row]
+    }
+    {
+        "data": "noidung3",
+        "info": [shapeIndex,row]
+    }
+
+]
+
+-TRONG FILE CONFIG CẤU HÌNH CẢ WIFI NỮA
+
+- Tối ưu hơn việc truyền data
+    + data truyền vào có định dạng json trên
+    + mô phỏng ledPanel
+
+-Thay font ở D:\hoc tap_2\thuctap\led_matrix_0703\LED_Matrix\lib\Adafruit-GFX-Library\Fonts
+-> ở trong folder Font của adaFruitGFX
+-> để thay vd: 
+#include <Fonts/FreeSans9pt7b.h> // đầu file
+
+display.setFont(&FreeSans9pt7b); trong hàm

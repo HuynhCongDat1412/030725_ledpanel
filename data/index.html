@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>web luyen tap</title>
+    
+    <style>
+        .container {
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+            box-sizing: border-box;
+            padding-right: 15px;
+            padding-left: 15px;
+            /* max-width: 1200px; */
+        }
+
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+
+        }
+
+        .col {
+            flex: 1 0 0%;
+            box-sizing: border-box;
+        }
+
+        .col-1 { flex: 0 0 8.3333%; max-width: 8.3333%; }
+        .col-2 { flex: 0 0 16.6667%; max-width: 16.6667%; }
+        .col-3 { flex: 0 0 25%; max-width: 25%; }
+        .col-4 { flex: 0 0 33.3333%; max-width: 33.3333%; }
+        .col-5 { flex: 0 0 41.6667%; max-width: 41.6667%; }
+        .col-6 { flex: 0 0 50%; max-width: 50%; }
+        .col-7 { flex: 0 0 58.3333%; max-width: 58.3333%; }
+        .col-8 { flex: 0 0 66.6667%; max-width: 66.6667%; }
+        .col-9 { flex: 0 0 75%; max-width: 75%; }
+        .col-10 { flex: 0 0 83.3333%; max-width: 83.3333%; }
+        .col-11 { flex: 0 0 91.6667%; max-width: 91.6667%; }
+        .col-12 { flex: 0 0 100%; max-width: 100%; }
+
+        .card2-item {
+            border: 1px solid #ccc;
+            margin: 8px;
+            padding: 8px;
+            display: inline-block;
+            /* width: 100%; */
+        }
+        #led-panel .pixel {
+            width: 10px;
+            height: 10px;
+            background: #222;
+            border-radius: 2px;
+            display: inline-block;
+            transition: background 0.1s;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Welcome to My Simple Web Page</h1>
+    </header>
+    <div class="container">
+        <div style="margin-bottom: 16px;">
+            <label>WebSocket IP: </label>
+            <input type="text" id="ws-ip" value="192.168.1.85" style="width:180px;">
+            <button type="button" onclick="reconnectWebSocket()"> kết nối lại </button>
+        </div>
+
+        <form>
+            <label>Shape:</label>
+            <select name="shape-type" id="shape-type" onchange="handleChangeShapeType()">
+                <option value="0">Line</option>
+                <option value="1">Rectangle</option>
+                <option value="2">Round</option>
+                <option value="3">Triangle</option>
+            </select>
+            <div class="card">
+                <div class="card-body" id="card-body">
+                    
+                </div>
+            <label>Màu shape: <input type="color" id="shape-color" value="#FFFFFF" /></label><br/>
+            </div>
+            <button type="button" onclick="msgGen()" style="margin: 20px">Submit</button> 
+
+            <div class="card2">     
+                <div class="card-body row" id="card2-body">
+                </div>
+            </div>
+            <br><br>
+        </form>  
+        <div id="led-panel" style="display: grid; grid-template-columns: repeat(64, 10px); grid-template-rows: repeat(32, 10px); gap: 1px;"></div>
+    </div>
+
+<div id="textModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);align-items:center;justify-content:center;z-index:1000;">
+    <div style="background:#fff;padding:16px;border-radius:6px;min-width:220px;">
+        <h4>Add Text</h4>
+        <p>ID:</p>
+        <label>X: <input type="number" id="modal-x" /></label><br/>
+        <label>Y: <input type="number" id="modal-y" /></label><br/>
+        <label>Màu: <input type="color" id="modal-color" value="#FFFFFF" /></label><br/> <!-- Thêm dòng này -->
+        <div style="margin-top:12px;">
+            <button type="button" id="modal-submit" onclick="textModal_add()">Submit</button>
+            <button type="button" id="modal-close" onclick="textModalF_close()">Close</button>
+        </div>
+    </div>
+</div>
+    <script>
+
+    var websocket;
+
+// Init web socket when the page loads
+
+const shapeNames = {
+    0: "Line",
+    1: "Rectangle",
+    2: "Round",
+    3: "Triangle"
+};
+
+window.addEventListener('load', onload);
+
+function onload(event) {
+    handleChangeShapeType();
+
+    initWebSocket();
+}
+
+function initWebSocket() {
+    const ws_IP = document.getElementById('ws-ip').value;
+    if (!ws_IP) {
+        console.error("WebSocket IP is not set.");
+        return;
+    }
+    ws_url = `ws://${ws_IP}:81/`;
+    console.log('Trying to open a WebSocket connection…');
+    websocket = new WebSocket(ws_url);
+    websocket.onopen = onOpen;
+    websocket.onclose = onClose;
+    websocket.onmessage = onMessage;
+}
+function reconnectWebSocket() {
+    if (websocket) {
+        websocket.close();
+    }
+    initWebSocket();
+}
+    function onOpen() {
+        console.log("WebSocket opened!");
+        alert("Đã kết nối tới WebSocket server thành công!");    
+    }
+function onClose() {
+    console.log("WebSocket closed!");
+    // Có thể thử reconnect nếu cần
+    setTimeout(initWebSocket, 1000); // Thử reconnect sau 1 giây
+}
+
+
+let masterArray = [
+    [], // [0]: shapes
+    [] // [1]: texts cho từng shape
+];
+let currentCardIdx = null; //Biến xác định Shape hiện tại đang thao tác
+
+function btnAddText(idx) {
+    const modal = document.getElementById('textModal');
+    const btnAddText = document.createElement('button');
+    btnAddText.textContent = 'Add Text';
+    btnAddText.type = 'button';
+    btnAddText.style.position = 'absolute';      // Đặt vị trí tuyệt đối
+    btnAddText.style.top = '8px';                // Cách trên 8px
+    btnAddText.style.right = '8px';              // Cách phải 8px
+    btnAddText.style.zIndex = '2';               // Đảm bảo nổi lên trên
+    btnAddText.onclick = () => {
+        currentCardIdx = idx;
+        modal.style.display = 'flex';
+    };
+    return btnAddText;
+}
+
+function renderLedPanel(masterArray) {
+    // Xóa panel trước khi vẽ mới
+    createLedPanel();
+
+    if (!Array.isArray(masterArray) || !Array.isArray(masterArray[0])) return;
+
+    // Vẽ shapes
+    masterArray[0].forEach(shape => {
+        const color = shape.color || "#FFFFFF";
+        if (shape.type === 0 && shape.data.length >= 4) { // Line
+            drawLine(shape.data[0], shape.data[1], shape.data[2], shape.data[3], color);
+        }
+        if (shape.type === 1 && shape.data.length >= 4) { // Rectangle
+            drawRect(shape.data[0], shape.data[1], shape.data[2], shape.data[3], color);
+        }
+        if (shape.type === 2 && shape.data.length >= 3) { // Circle
+            drawCircle(shape.data[0], shape.data[1], shape.data[2], color);
+        }
+        if (shape.type === 3 && shape.data.length >= 6) { // Triangle
+            drawLine(shape.data[0], shape.data[1], shape.data[2], shape.data[3], color);
+            drawLine(shape.data[2], shape.data[3], shape.data[4], shape.data[5], color);
+            drawLine(shape.data[4], shape.data[5], shape.data[0], shape.data[1], color);
+        }
+    });
+
+    // Vẽ text (nếu có)
+    if (Array.isArray(masterArray[1])) {
+        masterArray[1].forEach(textArr => {
+            if (Array.isArray(textArr)) {
+                textArr.forEach(textObj => {
+                    if (textObj.xy && textObj.xy.length === 2) {
+                        setPixel(textObj.xy[0], textObj.xy[1], textObj.color || "#FFFF00");
+                    }
+                });
+            }
+        });
+    }
+}
+
+function onMessage(event) {
+    console.log('Received message:', event.data);
+    const data = JSON.parse(event.data);
+    
+
+    try {
+        // const data = JSON.parse(event.data);
+    // if (!Array.isArray(masterArray[0])) masterArray[0] = [];
+    // if (!Array.isArray(masterArray[1])) masterArray[1] = [];
+        if (Array.isArray(data)) {
+            // Nếu chỉ có shapes (data.length === 1), thì thêm mảng rỗng cho texts
+            if (data.length === 1) {
+                const shapeLength = data[0].length;
+                const textArray = Array.from({ length: shapeLength }, () => []);
+                data.push(textArray);
+            }
+
+            masterArray = data;
+            renderAllCards();
+            renderLedPanel(masterArray);
+        } else {
+            // Nếu nhận 1 object, có thể xử lý riêng nếu muốn
+            console.warn("Received object instead of array:", data);
+        }
+    } catch (e) {
+        console.error('Invalid JSON:', event.data);
+    }
+}
+
+//Tạo nút Add text trong mỗi Card của mỗi Shape
+
+function createLedPanel(height = 32, width = 64) {
+    const panel = document.getElementById('led-panel');
+    panel.innerHTML = '';
+    for (let y = 0; y < height; y++) {      // Bỏ -1
+        for (let x = 0; x < width; x++) {   // Bỏ -1
+            const pixel = document.createElement('div');
+            pixel.className = 'pixel';
+            pixel.id = `px-${x}-${y}`;
+            panel.appendChild(pixel);
+        }
+    }
+}
+
+function setPixel(x, y, color) {
+    if (x >= 0 && x < 64 && y >= 0 && y < 32) { // Chỉ vẽ trong panel 64x32
+        const px = document.getElementById(`px-${x}-${y}`);
+        if (px) px.style.background = color;
+    }
+}
+
+function drawLine(x0, y0, x1, y1, color) {
+    x0 = Math.round(x0); y0 = Math.round(y0);
+    x1 = Math.round(x1); y1 = Math.round(y1);
+    let dx = Math.abs(x1 - x0), sx = x0 < x1 ? 1 : -1;
+    let dy = -Math.abs(y1 - y0), sy = y0 < y1 ? 1 : -1;
+    let err = dx + dy, e2;
+    while (true) {
+        setPixel(x0, y0, color);
+        if (x0 === x1 && y0 === y1) break;
+        e2 = 2 * err;
+        if (e2 >= dy) { err += dy; x0 += sx; }
+        if (e2 <= dx) { err += dx; y0 += sy; }
+    }
+}
+
+// Vẽ hình chữ nhật
+function drawRect(x, y, w, h, color) {
+    for (let i = 0; i < w; i++) {
+        setPixel(x + i, y, color);
+        setPixel(x + i, y + h - 1, color);
+    }
+    for (let j = 0; j < h; j++) {
+        setPixel(x, y + j, color);
+        setPixel(x + w - 1, y + j, color);
+    }
+}
+
+// Vẽ hình tròn (Midpoint circle)
+function drawCircle(x0, y0, r, color) {
+    x0 = Math.round(x0); y0 = Math.round(y0); r = Math.round(r);
+    let x = r, y = 0, err = 0;
+    while (x >= y) {
+        setPixel(x0 + x, y0 + y, color);
+        setPixel(x0 + y, y0 + x, color);
+        setPixel(x0 - y, y0 + x, color);
+        setPixel(x0 - x, y0 + y, color);
+        setPixel(x0 - x, y0 - y, color);
+        setPixel(x0 - y, y0 - x, color);
+        setPixel(x0 + y, y0 - x, color);
+        setPixel(x0 + x, y0 - y, color);
+        y += 1;
+        if (err <= 0) {
+            err += 2 * y + 1;
+        }
+        if (err > 0) {
+            x -= 1;
+            err -= 2 * x + 1;
+        }
+    }
+}
+
+function addShapeCardInfo(shapeData,card) {
+    if (!shapeData.color) shapeData.color = "#FFFFFF";
+    if (Array.isArray(shapeData.data)) {
+        shapeData.data.forEach((value, i) => {
+            let label = "";
+            if (i === 0) label = "x";
+            else if (i === 1) label = "y";
+            else label = `param_${i + 1}`;
+            const p = document.createElement('p');
+            p.textContent = `${label}: ${value}`;
+            card.appendChild(p);
+        });
+    }
+}
+
+// Tạo card cho mỗi shape trong mảng masterArray[0]
+function createTextModal(idx) {
+    const textModal = document.createElement('div');
+    if (!masterArray[1][idx]) return textModal;
+    
+    masterArray[1][idx].forEach((textObj, textIdx) => {
+        const textCard = document.createElement('div');
+        textCard.style.border = '1px solid #aaa';
+        textCard.style.margin = '6px';
+        textCard.style.padding = '4px';
+        textCard.style.background = '#f9f9f9';
+        textCard.innerHTML = `
+        <div>xy: [${textObj.xy.join(', ')}]</div>
+        ${textObj.id ? `<div>ids: ${textObj.id}</div>` : ''}
+    `;
+
+        // Nút xóa cho text object
+        const btnDeleteText = document.createElement('button');
+        btnDeleteText.type = 'button';
+        btnDeleteText.textContent = 'Xóa';
+        btnDeleteText.onclick = () => {
+            masterArray[1][idx].splice(textIdx, 1); // Xóa text object
+            // Cập nhật lại id cho các text object còn lại
+            masterArray[1][idx].forEach((obj, i) => {
+                obj.id = (i + 1);
+            });
+
+            sendSocket(masterArray);                // Gửi lại dữ liệu
+            renderAllCards();                       // Vẽ lại toàn bộ card
+        };
+        textModal.appendChild(textCard);
+        textModal.appendChild(btnDeleteText);        
+    });
+    
+    // Nút xóa
+    const btnDelete = document.createElement('button');
+    btnDelete.type = 'button';
+    btnDelete.style.position = 'absolute';      // Đặt vị trí tuyệt đối
+    btnDelete.style.bottom = '8px';             // Cách dưới 8px
+    btnDelete.style.right = '8px';              // Cách phải 8px
+    btnDelete.textContent = 'Xóa';
+    btnDelete.onclick = () => {
+        if (confirm("Bạn có chắc chắn muốn xóa shape này không?")) {
+            masterArray[0].splice(idx, 1); // Xóa phần tử khỏi mảng
+            masterArray[1].splice(idx, 1); // Xóa phần tử khỏi mảng
+            sendSocket(masterArray);       // Gửi lại toàn bộ mảng qua websocket
+            renderAllCards();              // Vẽ lại toàn bộ card
+        }
+    };
+    textModal.appendChild(btnDelete);
+    return textModal;
+}
+
+function createCardFromData(shapeData, idx) {
+    const card2Body = document.getElementById('card2-body');
+    const card = document.createElement('div');
+    card.className = 'col-3 card2-item';
+    card.style.position = 'relative'; // làm gốc để nút Add Text có thể tham chiếu
+    card.innerHTML = `
+      <div class="row">
+        <p class="col">Shape: ${shapeNames[shapeData.type] ?? shapeData.type}</p>
+      </div>
+    `;
+
+    const btnAddTextElem = btnAddText(idx);
+    card.appendChild(btnAddTextElem);
+
+    // thêm thông tin của Shape card
+    addShapeCardInfo(shapeData,card);
+    const textModal = createTextModal(idx);
+    card.appendChild(textModal);   
+    card2Body.appendChild(card);    
+
+}
+
+function textModal_add() {
+    const x = parseFloat(document.getElementById('modal-x').value);
+    const y = parseFloat(document.getElementById('modal-y').value);
+    const id = masterArray[1][currentCardIdx] ? masterArray[1][currentCardIdx].length + 1 : 1;
+    const color = document.getElementById('modal-color').value || "#FFFFFF";
+
+    // Đảm bảo mảng con tồn tại
+    if (!masterArray[1][currentCardIdx]) {
+        masterArray[1][currentCardIdx] = [];
+    }
+
+    if (!isNaN(x) && !isNaN(y) && !isNaN(id)) {
+        masterArray[1][currentCardIdx].push({ xy: [x, y], id, color });
+        renderAllCards();
+        document.getElementById('modal-x').value = '';
+        document.getElementById('modal-y').value = '';
+    }
+    const modal = document.getElementById('textModal');
+    modal.style.display = 'none';
+    sendSocket(masterArray);
+}
+function renderAllCards() {
+    const card2Body = document.getElementById('card2-body');
+    card2Body.innerHTML = '';
+    masterArray[0].forEach((obj, idx) => createCardFromData(obj, idx));
+}
+
+function msgGen() {
+    const inputFull = document.querySelectorAll('#card-body input');
+    const shapeType = parseInt(document.getElementById('shape-type').value, 10);
+    const shapeColor = document.getElementById('shape-color').value || "#FFFFFF"; // Lấy màu shape
+    
+    // Lấy các giá trị input theo thứ tự
+    const dataArr = [];
+    inputFull.forEach(input => {
+        dataArr.push(parseInt(input.value, 10));
+    });
+    const MSG = {
+        type: shapeType,
+        data: dataArr,
+        color: shapeColor // Thêm trường color
+    };
+    // Tạo object JSON đúng format
+
+    if (!Array.isArray(masterArray[0])) masterArray[0] = [];
+    if (!Array.isArray(masterArray[1])) masterArray[1] = [];
+    masterArray[0].push(MSG);
+    masterArray[1].push([]);
+    sendSocket(masterArray);
+    renderAllCards();
+}
+
+function sendSocket(dataSend) {
+    dataSend[0].forEach(shape => {
+        if (!shape.color) shape.color = "#FFFFFF";
+    });
+    if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify(dataSend));
+        // websocket.send("Hello bro");
+    } else {
+        console.log("WebSocket is not open. Message not sent.");
+    }
+    console.log(JSON.stringify(dataSend));
+}
+
+
+function handleChangeShapeType() {
+    const shapeType = document.getElementById('shape-type').value;
+    const cardBody = document.getElementById('card-body');
+    cardBody.innerHTML = '';
+    const card = document.createElement('div');
+    // shapeType là string, nên cần so sánh với "0", "1", ...
+    if (shapeType === "1") { // Rectangle
+        card.innerHTML = `
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x_root:</span>
+                <input type="text" name="x0" id="x0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y_root:</span>
+                <input type="text" name="y0" id="y0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">length:</span>
+                <input type="text" name="l" id="shape-length">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">height:</span>
+                <input type="text" name="h" id="shape-height">
+            </p>
+            <p> Tôi là hình chữ nhật </p>      
+        `;
+    }
+    else if (shapeType === "2") { // Round
+        card.innerHTML = `
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x_root:</span>
+                <input type="text" name="x0" id="x0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y_root:</span>
+                <input type="text" name="y0" id="y0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">radius:</span>
+                <input type="text" name="r" id="shape-radius">
+            </p>
+            <p> tôi là hình tròn </p>
+        `;
+    }
+    else if (shapeType === "3") { // Triangle
+        card.innerHTML = `
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x_root:</span>
+                <input type="text" name="x0" id="x0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y_root:</span>
+                <input type="text" name="y0" id="y0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x-second:</span>
+                <input type="text" name="x1" id="x1">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y-second:</span>
+                <input type="text" name="y1" id="y1">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x-third:</span>
+                <input type="text" name="x2" id="x2">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y-third:</span>
+                <input type="text" name="y2" id="y2">
+            </p>
+            <p> tôi là hình tam giác </p>
+        `;
+    }
+    else if (shapeType === "0") { // Line
+        card.innerHTML = `
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x_root:</span>
+                <input type="text" name="x0" id="x0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y_root:</span>
+                <input type="text" name="y0" id="y0">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">x-second:</span>
+                <input type="text" name="x1" id="x1">
+            </p>
+            <p style="display: flex; align-items: center;">
+                <span style="margin-right: 15px;">y-second:</span>
+                <input type="text" name="y1" id="y1">
+            </p>
+            <p> tôi là đường thẳng </p>
+        `;
+    }
+    cardBody.appendChild(card);
+}
+    </script>
+</body>

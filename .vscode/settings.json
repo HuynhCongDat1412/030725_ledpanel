@@ -3,6 +3,10 @@
         "new": "cpp",
         "tuple": "cpp",
         "mutex": "cpp",
-        "streambuf": "cpp"
+        "streambuf": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp"
     }
 }
