@@ -6,6 +6,17 @@
 #include <WiFi.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/Picopixel.h>
+#include <Fonts/TomThumb.h>
+#include <Fonts/mythic_5pixels.h>
+#include <Fonts/B_5px.h>
+// #include <Fonts/hud5pt7b.h>
+// #include <Fonts/04B_5px.h>
+
+
+
+#include <Fonts/Tiny3x3a2pt7b.h>
 // ==== Pin mapping (giữ nguyên như bạn đang dùng) ====
 #define R1_PIN 3
 #define G1_PIN 10
@@ -26,10 +37,10 @@
 
 #define FORMAT_LITTLEFS_IF_FAILED true
 
-// const char* ssid = "I-Soft";
-// const char* password = "i-soft@2023";
-const char* ssid = "DAT PHUONG";
-const char* password = "19201974";
+const char* ssid = "I-Soft";
+const char* password = "i-soft@2023";
+// const char* ssid = "DAT PHUONG";
+// const char* password = "19201974";
 
 // ==== Panel config ====
 #define PANEL_RES_X 64//104//64      // Số pixel ngang của panel
@@ -93,7 +104,7 @@ void clearMSG(DynamicJsonDocument doc);
 void setup_littleFS();
 void setup_ledPanel();
 
-void mapDataToTextContents( DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
+void mapDataToTextContents( JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 void mapDocToTextContents(const DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 DynamicJsonDocument createSampleJson() ;
 void DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color = myWHITE) {
@@ -202,18 +213,13 @@ void clearMSG(DynamicJsonDocument doc)
 void draw_MSG(DynamicJsonDocument doc)
 {
     virtualDisp->fillScreen(myBLACK);
-
     drawShapeFromType(doc);
-
     // Lấy tọa độ và id cho text
     if (doc.size() > 1 && doc[1].is<JsonArray>()) {
         get_CoordsAndID(doc[1].as<JsonArray>(), textCoorID);
+        mapDataToTextContents(doc[1].as<JsonArray>(), textContents); // map text từ doc[1]
     }
 
-    // Map nội dung text vào đúng vị trí
-    mapDataToTextContents(doc, textContents);
-
-    // Hiển thị tất cả các dòng chữ
     showAllTextLines(textCoorID, textContents);
 
     // Gửi JSON ra WebSocket
@@ -233,6 +239,7 @@ void showAllTextLines(TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP], char
 
       virtualDisp->setCursor(x, y);
       virtualDisp->setTextColor(textCoorID[shapeIndex][rowIndex].color); // hoặc myWHITE
+      virtualDisp->setFont(&B_085pt7b ); //set font, cỡ chữ 
       virtualDisp->setTextSize(1);
       virtualDisp->print(textContents[shapeIndex][rowIndex]);
     }
@@ -346,30 +353,50 @@ if (err) {
   return doc;
 }
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
-    if (type == WStype_CONNECTED) {
-        Serial.printf("Client %u connected\n", num);
-        String jsonOut;
-        serializeJson(loadConfig("/CONFIG.json"), jsonOut);
-        webSocketServer.sendTXT(num, jsonOut); // Gửi riêng cho client vừa kết nối
-    }
-  if (type == WStype_DISCONNECTED) {
-    Serial.printf("Client %u disconnected\n", num);
-  }
-  if (type == WStype_TEXT) {
-    String jsonStr = (const char*)payload;
-    Serial.println("Nhận JSON từ web:");
-    Serial.println(jsonStr);
-    DynamicJsonDocument doc = parseStringToJSON(jsonStr);
-    
-    saveConfig(doc, "/CONFIG.json"); // Lưu lại file config.json
+    if (type == WStype_TEXT) {
+        String jsonStr = (const char*)payload;
+        Serial.println("Nhận JSON từ web:");
+        Serial.println(jsonStr);
+        DynamicJsonDocument doc = parseStringToJSON(jsonStr);
 
-    if (!doc.isNull()) {
-      draw_MSG(doc); // Gọi hàm vẽ với dữ liệu JSON
-    } else {
-      Serial.println("❌ Dữ liệu JSON không hợp lệ.");
+        if (!doc.isNull()) {
+            // Nếu là masterArray (shapes + texts)
+            if (doc.is<JsonArray>() && doc.size() == 2 && doc[0].is<JsonArray>() && doc[1].is<JsonArray>()) {
+                saveConfig(doc, "/CONFIG.json");
+                draw_MSG(doc); // chỉ gọi draw_MSG cho masterArray
+            }
+            // Nếu là text mapping (mảng các object có "data" và "info")
+            else if (doc.is<JsonArray>() && doc[0].is<JsonObject>() && doc[0].containsKey("data") && doc[0].containsKey("info")) {
+                Serial.println("Tôi dang map data");
+                mapDataToTextContents(doc.as<JsonArray>(), textContents);
+                showAllTextLines(textCoorID, textContents);   
+                saveConfig(doc, "/DATA.json");
+                Serial.println("✅ Đã lưu DATA.json");          
+            }
+            else {
+                Serial.println("❌ Không nhận diện được loại JSON!");
+            }
+        } else {
+            Serial.println("❌ Dữ liệu JSON không hợp lệ.");
+        }
     }
-   
-  }
+    if (type == WStype_DISCONNECTED) {
+        Serial.printf("WebSocket client %u disconnected\n", num);
+    }
+    if (type == WStype_CONNECTED) {
+        Serial.printf("WebSocket client %u connected\n", num);
+        // Gửi lại nội dung hiện tại của CONFIG.json
+        DynamicJsonDocument configDoc = loadConfig("/CONFIG.json");
+        String jsonOut;
+        serializeJson(configDoc, jsonOut);
+        webSocketServer.sendTXT(num, jsonOut);
+
+        configDoc = loadConfig("/DATA.json");
+        serializeJson(configDoc, jsonOut);
+        webSocketServer.sendTXT(num, jsonOut);
+        Serial.println("✅ Đã gửi lại nội dung CONFIG.json và DATA.json cho client.");
+    }
+    
 }
 
 void setup_littleFS () {
@@ -426,8 +453,14 @@ DynamicJsonDocument createSampleJson() {
     }
     return doc;
 }
-void mapDataToTextContents( DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
-    JsonArray arr = doc.as<JsonArray>();
+void mapDataToTextContents(JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
+    //xóa hết trước khi map
+    // for (int g = 0; g < MAX_GROUPS; g++) {
+    //     for (int r = 0; r < MAX_LINES_PER_GROUP; r++) {
+    //         textContents[g][r][0] = '\0';
+    //     }
+    // }
+
     for (JsonVariant v : arr) {
         if (!v.is<JsonObject>()) continue;
         String content = v["data"] | "";
@@ -452,30 +485,75 @@ void mapDataToTextContents( DynamicJsonDocument doc, char textContents[MAX_GROUP
     }
 } 
 
-// void mapTextDataToCoorByID(JsonArray textDataArray, TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP], char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
-//     for (JsonVariant v : textDataArray) {
-//     if (!v.is<JsonObject>()) continue;
+const GFXfont* getFontByName(const String& name) {
+    if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
+    else if (name == "Tiny3x3a2pt7b") return &Tiny3x3a2pt7b;
+    else if (name == "TomThumb") return &TomThumb; // nếu bạn thêm TomThumb.h
+    else if (name == "Picopixel") return &Picopixel; // nếu bạn thêm Picopixel.h
+    else return nullptr; // font không hỗ trợ
+}
 
-//     String content = v["data"] | "";
-//     auto infoVar = v["info"];
-//     if (!infoVar.is<JsonArray>()) continue;
-//     JsonArray info = infoVar.as<JsonArray>();
-//     if (info.size() < 2) continue;
+void handleSerialConfig() {
+    static String inputString = "";
+    static bool stringComplete = false;
 
-//     int group = info[0].as<int>();
-//     int row = info[1].as<int>();
+    // Đọc dữ liệu từ Serial
+    while (Serial.available()) {
+        char inChar = (char)Serial.read();
+        if (inChar == '\n') {
+            stringComplete = true;
+            break;
+        } else {
+            inputString += inChar;
+        }
+    }
 
-//     if (group < 0 || group >= MAX_GROUPS || row < 0 || row >= MAX_LINES_PER_GROUP) continue;
+    // Nếu đã nhận đủ 1 dòng JSON
+    if (stringComplete) {
+        DynamicJsonDocument doc(256);
+        DeserializationError err = deserializeJson(doc, inputString);
+        if (err) {
+            Serial.print("Lỗi parse JSON: ");
+            Serial.println(err.c_str());
+        } else {
+            // Cấu hình WiFi
+            if (doc.containsKey("ssid") && doc.containsKey("password")) {
+                const char* ssid = doc["ssid"];
+                const char* password = doc["password"];
+                Serial.printf("Kết nối WiFi: %s ...\n", ssid);
+                WiFi.begin(ssid, password);
+                int t = 0;
+                while (WiFi.status() != WL_CONNECTED && t < 20) {
+                    delay(500);
+                    Serial.print(".");
+                    t++;
+                }
+                if (WiFi.status() == WL_CONNECTED) {
+                    Serial.println("\n✅ Đã kết nối WiFi!");
+                    Serial.print("IP: ");
+                    Serial.println(WiFi.localIP());
+                } else {
+                    Serial.println("\n❌ Kết nối WiFi thất bại!");
+                }
+            }
+            // Đổi font
+            if (doc.containsKey("font")) {
+                String fontName = doc["font"].as<String>();
+                const GFXfont* fontPtr = getFontByName(fontName);
+                if (fontPtr != nullptr) {
+                    virtualDisp->setFont(fontPtr);
+                    Serial.println("✅ Đã set font: " + fontName);
+                } else {
+                    Serial.println("❌ Font không hỗ trợ: " + fontName);
+                }
+                showAllTextLines(textCoorID, textContents); // Cập nhật hiển thị chữ với font mới
+            }
+        }
+        inputString = "";
+        stringComplete = false;
+    }
+}
 
-//     // Gán nội dung vào đúng tọa độ nếu có sẵn
-//     if (textCoorID[group][row].id != 0) {
-//         strncpy(textContents[group][row], content.c_str(), MAX_TEXT_LENGTH - 1);
-//         textContents[group][row][MAX_TEXT_LENGTH - 1] = '\0';
-//         Serial.printf("✅ Gán '%s' vào textContents[%d][%d] (id=%d)\n", content.c_str(), group, row, textCoorID[group][row].id);
-//     }
-// }
-
-// }
 void setup() {
 
     Serial.begin(115200);
@@ -486,18 +564,19 @@ void setup() {
     // listLittleFSFiles();
 
     draw_MSG(loadConfig("/CONFIG.json"));
-    DynamicJsonDocument doc = createSampleJson();
-    String jsonOut;
-    serializeJson(doc, jsonOut);
-    Serial.println("Nội dung doc:");
-    Serial.println(jsonOut);    
-    mapDataToTextContents(doc, textContents);
-
+    DynamicJsonDocument dataDoc = loadConfig("/DATA.json");
+    if (dataDoc.is<JsonArray>() && dataDoc.size() > 0) {
+        mapDataToTextContents(dataDoc.as<JsonArray>(), textContents);
+        showAllTextLines(textCoorID, textContents);
+        Serial.println("✅ Đã load DATA.json và hiển thị text!");
+    } else {
+        Serial.println("⚠️ DATA.json rỗng hoặc không đúng định dạng!");
+    }
+}
     // Hiển thị chữ lên màn hình
     // showAllTextLines(textCoorID, textContents);
-}
-
 void loop() {
+    // handleSerialConfig(); // Xử lý cấu hình từ Serial nếu có
   // Không làm gì trong loo
   webSocketServer.loop();
   server.handleClient();

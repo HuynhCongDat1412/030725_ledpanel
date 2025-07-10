@@ -64,7 +64,7 @@
     <div class="container">
         <div style="margin-bottom: 16px;">
             <label>WebSocket IP: </label>
-            <input type="text" id="ws-ip" value="192.168.1.85" style="width:180px;">
+            <input type="text" id="ws-ip" value="192.168.2.229" style="width:180px;">
             <button type="button" onclick="reconnectWebSocket()"> kết nối lại </button>
         </div>
 
@@ -90,7 +90,7 @@
             </div>
             <br><br>
         </form>  
-        <div id="led-panel" style="display: grid; grid-template-columns: repeat(64, 10px); grid-template-rows: repeat(32, 10px); gap: 1px;"></div>
+        <!-- <div id="led-panel" style="display: grid; grid-template-columns: repeat(64, 10px); grid-template-rows: repeat(32, 10px); gap: 1px;"></div> -->
     </div>
 
 <div id="textModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.3);align-items:center;justify-content:center;z-index:1000;">
@@ -100,6 +100,7 @@
         <label>X: <input type="number" id="modal-x" /></label><br/>
         <label>Y: <input type="number" id="modal-y" /></label><br/>
         <label>Màu: <input type="color" id="modal-color" value="#FFFFFF" /></label><br/> <!-- Thêm dòng này -->
+        
         <div style="margin-top:12px;">
             <button type="button" id="modal-submit" onclick="textModal_add()">Submit</button>
             <button type="button" id="modal-close" onclick="textModalF_close()">Close</button>
@@ -156,6 +157,7 @@ function onClose() {
     setTimeout(initWebSocket, 1000); // Thử reconnect sau 1 giây
 }
 
+let allTextMessages = []; // Lưu tất cả các text message đã gửi
 
 let masterArray = [
     [], // [0]: shapes
@@ -220,33 +222,91 @@ function renderLedPanel(masterArray) {
 
 function onMessage(event) {
     console.log('Received message:', event.data);
-    const data = JSON.parse(event.data);
-    
 
+    // Tách các JSON mảng nối liền nhau
+    let raw = event.data;
+    let jsons = [];
+    let depth = 0, start = 0;
+    for (let i = 0; i < raw.length; i++) {
+        if (raw[i] === '[') {
+            if (depth === 0) start = i;
+            depth++;
+        }
+        if (raw[i] === ']') {
+            depth--;
+            if (depth === 0) {
+                jsons.push(raw.slice(start, i + 1));
+            }
+        }
+    }
+    jsons.forEach(str => {
     try {
-        // const data = JSON.parse(event.data);
-    // if (!Array.isArray(masterArray[0])) masterArray[0] = [];
-    // if (!Array.isArray(masterArray[1])) masterArray[1] = [];
+        const data = JSON.parse(str);
         if (Array.isArray(data)) {
-            // Nếu chỉ có shapes (data.length === 1), thì thêm mảng rỗng cho texts
-            if (data.length === 1) {
-                const shapeLength = data[0].length;
-                const textArray = Array.from({ length: shapeLength }, () => []);
-                data.push(textArray);
+            // Nếu là text mapping (mảng các object có data & info)
+            if (
+                data.length > 0 &&
+                typeof data[0] === 'object' &&
+                data[0] !== null &&
+                'data' in data[0] &&
+                'info' in data[0]
+            ) 
+                {
+                    console.log("data messages:", data);
+                    allTextMessages = data;
+                    renderTextMessages(allTextMessages);
+                    return;
+                }
+
+            // Nếu là masterArray (shapes + texts)
+            if (
+                data.length === 2 &&
+                Array.isArray(data[0]) &&
+                Array.isArray(data[1]) &&
+                data[0].length > 0 &&
+                typeof data[0][0] === 'object' &&
+                'type' in data[0][0]
+            ) {
+                console.log("Shape msg: ",data);
+                masterArray = data;
+                renderAllCards();
+                // renderLedPanel(masterArray);
+                return;
             }
 
-            masterArray = data;
-            renderAllCards();
-            renderLedPanel(masterArray);
+            // Nếu chỉ có shapes (data.length === 1), thì thêm mảng rỗng cho texts
+            if (data.length === 1 && Array.isArray(data[0])) {
+                console.log("Lỗi2");
+
+                const shapeLength = data[0].length;
+                const textArray = Array.from({ length: shapeLength }, () => []);
+                masterArray = [data[0], textArray];
+                renderAllCards();
+                renderLedPanel(masterArray);
+                return;
+            }
         } else {
-            // Nếu nhận 1 object, có thể xử lý riêng nếu muốn
             console.warn("Received object instead of array:", data);
         }
     } catch (e) {
-        console.error('Invalid JSON:', event.data);
+        console.error('Invalid JSON:', str);
     }
+});
 }
 
+function renderTextMessages(textArr) {
+    // Duyệt qua từng text message trong allTextMessages
+    textArr.forEach(msg => {
+        if (!msg.info || msg.info.length < 2) return;
+        const [shapeIdx, rowIdx] = msg.info;
+        // Tìm đúng input của shape và row này
+        // Giả sử mỗi input có id dạng: input-text-{shapeIdx}-{rowIdx}
+        const input = document.getElementById(`input-text-${shapeIdx}-${rowIdx}`);
+        if (input) {
+            input.value = msg.data || "";
+        }
+    });
+}
 //Tạo nút Add text trong mỗi Card của mỗi Shape
 
 function createLedPanel(height = 32, width = 64) {
@@ -339,7 +399,7 @@ function addShapeCardInfo(shapeData,card) {
 function createTextModal(idx) {
     const textModal = document.createElement('div');
     if (!masterArray[1][idx]) return textModal;
-    
+
     masterArray[1][idx].forEach((textObj, textIdx) => {
         const textCard = document.createElement('div');
         textCard.style.border = '1px solid #aaa';
@@ -349,26 +409,71 @@ function createTextModal(idx) {
         textCard.innerHTML = `
         <div>xy: [${textObj.xy.join(', ')}]</div>
         ${textObj.id ? `<div>ids: ${textObj.id}</div>` : ''}
-    `;
+        `;
+
+        // Thêm ô nhập text và nút gửi
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'Nhập nội dung...';
+        input.style.marginRight = '8px';
+        // Thêm dòng này:
+        input.id = `input-text-${idx}-${textIdx}`;
+
+        const btnSend = document.createElement('button');
+        btnSend.type = 'button';
+        btnSend.textContent = 'Gửi';
+        btnSend.onclick = () => {
+        const value = input.value.trim();
+        if (!value) return alert('Vui lòng nhập nội dung!');
+        // Gửi masterArray (shapes + text vị trí)
+        sendSocket(masterArray);
+
+        // Tạo object text message
+        const textMsg = {
+            data: value,
+            info: [idx, textIdx],
+            id: masterArray[1][idx][textIdx]?.id
+        };
+        allTextMessages.push(textMsg);
+
+        // Gửi toàn bộ allTextMessages qua WebSocket
+        if (websocket.readyState === WebSocket.OPEN) {
+            websocket.send(JSON.stringify(allTextMessages));
+        }
+        console.log('Đã gửi!');
+    };
+
+        textCard.appendChild(input);
+        textCard.appendChild(btnSend);
 
         // Nút xóa cho text object
         const btnDeleteText = document.createElement('button');
         btnDeleteText.type = 'button';
         btnDeleteText.textContent = 'Xóa';
         btnDeleteText.onclick = () => {
+            const deletedId = masterArray[1][idx][textIdx]?.id;
             masterArray[1][idx].splice(textIdx, 1); // Xóa text object
             // Cập nhật lại id cho các text object còn lại
             masterArray[1][idx].forEach((obj, i) => {
                 obj.id = (i + 1);
             });
 
+            if (deletedId !== undefined) {
+                allTextMessages = allTextMessages.filter(msg => msg.id !== deletedId);
+            }
+            console.log(`Đã xóa text object với id: ${deletedId}`);
+            console.log('Cập nhật lại allTextMessages:', allTextMessages);
+            if (websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify(allTextMessages));
+            }
+
             sendSocket(masterArray);                // Gửi lại dữ liệu
             renderAllCards();                       // Vẽ lại toàn bộ card
         };
+        textCard.appendChild(btnDeleteText);
+
         textModal.appendChild(textCard);
-        textModal.appendChild(btnDeleteText);        
     });
-    
     // Nút xóa
     const btnDelete = document.createElement('button');
     btnDelete.type = 'button';

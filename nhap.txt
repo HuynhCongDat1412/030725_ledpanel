@@ -56,3 +56,8 @@ lưu data
 #include <Fonts/FreeSans9pt7b.h> // đầu file
 
 display.setFont(&FreeSans9pt7b); trong hàm
+
+
+- Map data thì trước khi map phải xóa hết data
+
+- Data cũng đưa vào 1 mảng rồi gửi hết 1 lần khi web gửi
