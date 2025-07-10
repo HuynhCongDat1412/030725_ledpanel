@@ -148,7 +148,7 @@ function reconnectWebSocket() {
     initWebSocket();
 }
     function onOpen() {
-        console.log("WebSocket opened!");
+        sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
         alert("Đã kết nối tới WebSocket server thành công!");    
     }
 function onClose() {
@@ -178,6 +178,7 @@ function btnAddText(idx) {
         currentCardIdx = idx;
         modal.style.display = 'flex';
     };
+    sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
     return btnAddText;
 }
 
@@ -222,6 +223,7 @@ function renderLedPanel(masterArray) {
 
 function onMessage(event) {
     console.log('Received message:', event.data);
+    console.log("Text còn lại", allTextMessages);
 
     // Tách các JSON mảng nối liền nhau
     let raw = event.data;
@@ -255,6 +257,8 @@ function onMessage(event) {
                     console.log("data messages:", data);
                     allTextMessages = data;
                     renderTextMessages(allTextMessages);
+                    renderAllCards();
+
                     return;
                 }
 
@@ -267,8 +271,10 @@ function onMessage(event) {
                 typeof data[0][0] === 'object' &&
                 'type' in data[0][0]
             ) {
-                console.log("Shape msg: ",data);
+                // console.log("Shape msg: ",data);
                 masterArray = data;
+                console.log("Lỗi1");
+
                 renderAllCards();
                 // renderLedPanel(masterArray);
                 return;
@@ -276,13 +282,10 @@ function onMessage(event) {
 
             // Nếu chỉ có shapes (data.length === 1), thì thêm mảng rỗng cho texts
             if (data.length === 1 && Array.isArray(data[0])) {
-                console.log("Lỗi2");
-
                 const shapeLength = data[0].length;
                 const textArray = Array.from({ length: shapeLength }, () => []);
                 masterArray = [data[0], textArray];
                 renderAllCards();
-                renderLedPanel(masterArray);
                 return;
             }
         } else {
@@ -293,15 +296,12 @@ function onMessage(event) {
     }
 });
 }
-
 function renderTextMessages(textArr) {
-    // Duyệt qua từng text message trong allTextMessages
     textArr.forEach(msg => {
         if (!msg.info || msg.info.length < 2) return;
-        const [shapeIdx, rowIdx] = msg.info;
-        // Tìm đúng input của shape và row này
-        // Giả sử mỗi input có id dạng: input-text-{shapeIdx}-{rowIdx}
-        const input = document.getElementById(`input-text-${shapeIdx}-${rowIdx}`);
+        const shapeIdx = msg.info[0];
+        const id = msg.info[1];
+        const input = document.getElementById(`input-text-${shapeIdx}-${id}`);
         if (input) {
             input.value = msg.data || "";
         }
@@ -401,23 +401,49 @@ function createTextModal(idx) {
     if (!masterArray[1][idx]) return textModal;
 
     masterArray[1][idx].forEach((textObj, textIdx) => {
+        const existMsg = allTextMessages.find(
+            msg => Array.isArray(msg.info) && msg.info[0] === idx && msg.info[1] === textObj.id
+        );
+        const defaultValue = existMsg ? existMsg.data : "";
+        const defaultFont = existMsg ? existMsg.font : "FreeSans9pt7b";
         const textCard = document.createElement('div');
         textCard.style.border = '1px solid #aaa';
         textCard.style.margin = '6px';
         textCard.style.padding = '4px';
         textCard.style.background = '#f9f9f9';
         textCard.innerHTML = `
-        <div>xy: [${textObj.xy.join(', ')}]</div>
-        ${textObj.id ? `<div>ids: ${textObj.id}</div>` : ''}
+            ${textObj.id ? `<div>ids: ${textObj.id}</div>` : ''}
+            <div>xy: [${textObj.xy.join(', ')}]</div>
+            <div>
+                <label>Font:</label>
+            </div>
         `;
 
+        // Tạo select font với giá trị mặc định
+        const fontSelect = document.createElement('select');
+        fontSelect.className = 'font-select';
+        fontSelect.id = `font-select-${idx}-${textObj.id}`;
+        [
+            "FreeSans9pt7b","FreeSans12pt7b","FreeSans18pt7b",
+            "FreeMono9pt7b","FreeMono12pt7b","FreeMono18pt7b",
+            "FreeMonoBold9pt7b","FreeMonoBold12pt7b","FreeMonoBold18pt7b",
+            "Picopixel","TomThumb","mythic_5pixels","B_5px"
+        ].forEach(font => {
+            const opt = document.createElement('option');
+            opt.value = font;
+            opt.textContent = font;
+            if (font === defaultFont) opt.selected = true;
+            fontSelect.appendChild(opt);
+        });
+        textCard.querySelector('div:last-child').appendChild(fontSelect);
         // Thêm ô nhập text và nút gửi
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'Nhập nội dung...';
         input.style.marginRight = '8px';
         // Thêm dòng này:
-        input.id = `input-text-${idx}-${textIdx}`;
+        input.id = `input-text-${idx}-${textObj.id}`;
+        input.value = defaultValue; // Gán giá trị mặc định nếu có
 
         const btnSend = document.createElement('button');
         btnSend.type = 'button';
@@ -425,14 +451,20 @@ function createTextModal(idx) {
         btnSend.onclick = () => {
         const value = input.value.trim();
         if (!value) return alert('Vui lòng nhập nội dung!');
+        // Lấy font đã chọn
+        const fontSelect = document.getElementById(`font-select-${idx}-${textObj.id}`);
+        const font = fontSelect ? fontSelect.value : "FreeSans9pt7b";
+
         // Gửi masterArray (shapes + text vị trí)
         sendSocket(masterArray);
+        sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
 
         // Tạo object text message
         const textMsg = {
             data: value,
-            info: [idx, textIdx],
-            id: masterArray[1][idx][textIdx]?.id
+            info: [idx, textObj.id], // id trùng với id của textObj
+            // id: textObj.id, 
+            font: font
         };
         allTextMessages.push(textMsg);
 
@@ -451,25 +483,24 @@ function createTextModal(idx) {
         btnDeleteText.type = 'button';
         btnDeleteText.textContent = 'Xóa';
         btnDeleteText.onclick = () => {
-            const deletedId = masterArray[1][idx][textIdx]?.id;
-            masterArray[1][idx].splice(textIdx, 1); // Xóa text object
-            // Cập nhật lại id cho các text object còn lại
-            masterArray[1][idx].forEach((obj, i) => {
-                obj.id = (i + 1);
-            });
-
-            if (deletedId !== undefined) {
-                allTextMessages = allTextMessages.filter(msg => msg.id !== deletedId);
-            }
-            console.log(`Đã xóa text object với id: ${deletedId}`);
-            console.log('Cập nhật lại allTextMessages:', allTextMessages);
-            if (websocket.readyState === WebSocket.OPEN) {
-                websocket.send(JSON.stringify(allTextMessages));
-            }
-
-            sendSocket(masterArray);                // Gửi lại dữ liệu
-            renderAllCards();                       // Vẽ lại toàn bộ card
-        };
+    const shapeIdx = idx;
+    const textId = textObj.id;
+    const arr = masterArray[1][shapeIdx];
+    const delIdx = arr.findIndex(obj => obj.id === textId);
+    if (delIdx !== -1) {
+        arr.splice(delIdx, 1);
+        // Cập nhật lại id cho các text object còn lại
+        arr.forEach((obj, i) => { obj.id = i + 1; });
+        // Lọc lại allTextMessages chỉ giữ text còn tồn tại
+        const validIds = arr.map(obj => obj.id);
+        allTextMessages = allTextMessages.filter(
+            msg => !(msg.info[0] === shapeIdx) || validIds.includes(msg.info[1])
+        );
+        sendSocket(masterArray);
+        sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
+        renderAllCards();
+    }
+};
         textCard.appendChild(btnDeleteText);
 
         textModal.appendChild(textCard);
@@ -482,13 +513,27 @@ function createTextModal(idx) {
     btnDelete.style.right = '8px';              // Cách phải 8px
     btnDelete.textContent = 'Xóa';
     btnDelete.onclick = () => {
-        if (confirm("Bạn có chắc chắn muốn xóa shape này không?")) {
-            masterArray[0].splice(idx, 1); // Xóa phần tử khỏi mảng
-            masterArray[1].splice(idx, 1); // Xóa phần tử khỏi mảng
-            sendSocket(masterArray);       // Gửi lại toàn bộ mảng qua websocket
-            renderAllCards();              // Vẽ lại toàn bộ card
-        }
-    };
+    if (confirm("Bạn có chắc chắn muốn xóa shape này không?")) {
+        masterArray[0].splice(idx, 1); // Xóa shape
+        masterArray[1].splice(idx, 1); // Xóa text của shape
+
+        // Xóa tất cả text message thuộc shape này khỏi allTextMessages
+        allTextMessages = allTextMessages.filter(
+            msg => !(Array.isArray(msg.info) && msg.info[0] === idx)
+        );
+
+        // Sau khi xóa shape idx, cần cập nhật lại chỉ số shape cho các text message còn lại
+        allTextMessages.forEach(msg => {
+            if (Array.isArray(msg.info) && msg.info[0] > idx) {
+                msg.info[0] -= 1;
+            }
+        });
+
+        sendSocket(masterArray);
+        sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
+        renderAllCards();
+    }
+};
     textModal.appendChild(btnDelete);
     return textModal;
 }
@@ -535,6 +580,7 @@ function textModal_add() {
     const modal = document.getElementById('textModal');
     modal.style.display = 'none';
     sendSocket(masterArray);
+    sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
 }
 function renderAllCards() {
     const card2Body = document.getElementById('card2-body');
@@ -564,22 +610,18 @@ function msgGen() {
     masterArray[0].push(MSG);
     masterArray[1].push([]);
     sendSocket(masterArray);
+    sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
     renderAllCards();
 }
 
 function sendSocket(dataSend) {
-    dataSend[0].forEach(shape => {
-        if (!shape.color) shape.color = "#FFFFFF";
-    });
     if (websocket.readyState === WebSocket.OPEN) {
         websocket.send(JSON.stringify(dataSend));
-        // websocket.send("Hello bro");
     } else {
         console.log("WebSocket is not open. Message not sent.");
     }
-    console.log(JSON.stringify(dataSend));
+    console.log("Data sendSocket: ", JSON.stringify(dataSend));
 }
-
 
 function handleChangeShapeType() {
     const shapeType = document.getElementById('shape-type').value;

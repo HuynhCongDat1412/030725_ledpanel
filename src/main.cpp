@@ -7,6 +7,15 @@
 #include <WebServer.h>
 #include <WebSocketsServer.h>
 #include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
+#include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeMono9pt7b.h>
+#include <Fonts/FreeMono12pt7b.h>
+#include <Fonts/FreeMono18pt7b.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
+#include <Fonts/FreeMonoBold12pt7b.h>
+#include <Fonts/FreeMonoBold18pt7b.h>
+
 #include <Fonts/Picopixel.h>
 #include <Fonts/TomThumb.h>
 #include <Fonts/mythic_5pixels.h>
@@ -45,7 +54,12 @@ const char* password = "i-soft@2023";
 // ==== Panel config ====
 #define PANEL_RES_X 64//104//64      // Số pixel ngang của panel
 #define PANEL_RES_Y 32//52//32      // Số pixel dọc của panel
+ #define VDISP_NUM_ROWS      1 // Number of rows of individual LED panels 
+ #define VDISP_NUM_COLS      2 // Number of individual LED panels per row
+ 
+ #define PANEL_CHAIN_LEN     (VDISP_NUM_ROWS*VDISP_NUM_COLS)  // Don't change
 
+ #define PANEL_CHAIN_TYPE CHAIN_TOP_RIGHT_DOWN
 // Định nghĩa struct cho từng dòng chữ
 struct TextLine {
     int x;
@@ -70,15 +84,13 @@ int rowsTextInEachShapeFilter[MAX_GROUPS]; // Số dòng thực tế trong mỗi
 char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]; // [nhóm][dòng][ký tự]
 
 
-
-
 // ==== Scan type mapping ====
 #define PANEL_SCAN_TYPE FOUR_SCAN_32PX_HIGH // hoặc FOUR_SCAN_64PX_HIGH tùy panel thực tế
 using MyScanTypeMapping = ScanTypeMapping<PANEL_SCAN_TYPE>;
 
 // ==== Khai báo đối tượng DMA và VirtualPanel ====
 MatrixPanel_I2S_DMA *dma_display = nullptr;
-VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>* virtualDisp = nullptr;
+VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>* virtualDisp = nullptr;
 
 // ==== Màu sắc mẫu ====
 uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE;
@@ -103,7 +115,7 @@ void drawTextInShape(DynamicJsonDocument doc);
 void clearMSG(DynamicJsonDocument doc);
 void setup_littleFS();
 void setup_ledPanel();
-
+const GFXfont* getFontByName(const String& name);
 void mapDataToTextContents( JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 void mapDocToTextContents(const DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 DynamicJsonDocument createSampleJson() ;
@@ -229,25 +241,51 @@ void draw_MSG(DynamicJsonDocument doc)
 }
 
 void showAllTextLines(TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP], char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
-  for (int shapeIndex = 0; shapeIndex < MAX_GROUPS; shapeIndex++) {
-    // Nếu nhóm này không có dòng nào thì bỏ qua
+    // Giả sử bạn có mảng allTextMessages chứa thông tin font cho từng dòng
+    DynamicJsonDocument dataDoc = loadConfig("/DATA.json");
+
+    JsonArray allTextMessages = dataDoc.as<JsonArray>();
+    Serial.println("Tất cả dòng chữ:");
+    for (int g = 0; g < MAX_GROUPS; g++) {
+        for (int r = 0; r < MAX_LINES_PER_GROUP; r++) {
+            if (textContents[g][r][0] != '\0') {
+                Serial.printf("textContents[%d][%d]: %s\n", g, r, textContents[g][r]);
+            }
+        }
+    }
+
+for (int shapeIndex = 0; shapeIndex < MAX_GROUPS; shapeIndex++) {
     if (rowsTextInEachShapeFilter[shapeIndex] == 0) continue;
 
     for (int rowIndex = 0; rowIndex < rowsTextInEachShapeFilter[shapeIndex]; rowIndex++) {
-      int x = textCoorID[shapeIndex][rowIndex].x;
-      int y = textCoorID[shapeIndex][rowIndex].y;
+        int x = textCoorID[shapeIndex][rowIndex].x;
+        int y = textCoorID[shapeIndex][rowIndex].y;
+        uint16_t color = textCoorID[shapeIndex][rowIndex].color;
+        int id = textCoorID[shapeIndex][rowIndex].id;
 
-      virtualDisp->setCursor(x, y);
-      virtualDisp->setTextColor(textCoorID[shapeIndex][rowIndex].color); // hoặc myWHITE
-      virtualDisp->setFont(&B_085pt7b ); //set font, cỡ chữ 
-      virtualDisp->setTextSize(1);
-      virtualDisp->print(textContents[shapeIndex][rowIndex]);
+        // Tìm font cho dòng này từ allTextMessages
+        String fontName = "FreeSans9pt7b";
+        for (JsonObject msg : allTextMessages) {
+            if (msg["info"].is<JsonArray>() &&
+                msg["info"][0] == shapeIndex &&
+                msg["info"][1] == id) { // so sánh id
+                fontName = msg["font"] | "FreeSans9pt7b";
+                break;
+            }
+        }
+        const GFXfont* fontPtr = getFontByName(fontName);
+        if (fontPtr) {
+            virtualDisp->setFont(fontPtr);
+        } else {
+            virtualDisp->setFont(&FreeSans9pt7b);
+        }
+
+        virtualDisp->setCursor(x, y);
+        virtualDisp->setTextColor(color);
+        virtualDisp->setTextSize(1);
+        virtualDisp->print(textContents[shapeIndex][rowIndex]);
     }
-  }
-
-  virtualDisp->flipDMABuffer(); // cập nhật nội dung vẽ
 }
-
 // textInfoArray là mảng JSON chứa thông tin về các dòng chữ trong từng shape
 void get_CoordsAndID(JsonArray textInfoArray, TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP]) {
   for (int shapeIndex = 0; shapeIndex <  textInfoArray.size() && shapeIndex < MAX_GROUPS; shapeIndex++) {
@@ -306,7 +344,7 @@ void saveConfig(const DynamicJsonDocument& doc, String filePath ) {
   if (serializeJson(doc, file) == 0) {
     // Serial.println("❌ Lỗi: Ghi file config thất bại (JSON rỗng?).");
   } else {
-    Serial.print("✅ Đã lưu config thành công vào /config.json: ");
+    Serial.print("✅ Đã lưu config thành công vào file");
     String jsonOut;
     serializeJson(doc, jsonOut);
     // Serial.println(jsonOut);
@@ -366,12 +404,41 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 draw_MSG(doc); // chỉ gọi draw_MSG cho masterArray
             }
             // Nếu là text mapping (mảng các object có "data" và "info")
-            else if (doc.is<JsonArray>() && doc[0].is<JsonObject>() && doc[0].containsKey("data") && doc[0].containsKey("info")) {
-                Serial.println("Tôi dang map data");
-                mapDataToTextContents(doc.as<JsonArray>(), textContents);
-                showAllTextLines(textCoorID, textContents);   
-                saveConfig(doc, "/DATA.json");
-                Serial.println("✅ Đã lưu DATA.json");          
+            else if (doc.is<JsonArray>()) {
+                // Nếu nhận mảng rỗng => reset textContents
+                if (doc.size() == 0) {
+                    for (int g = 0; g < MAX_GROUPS; g++) {
+                        for (int r = 0; r < MAX_LINES_PER_GROUP; r++) {
+                            textContents[g][r][0] = '\0';
+                        }
+                    }
+                    saveConfig(doc, "/DATA.json");
+                    showAllTextLines(textCoorID, textContents);
+                    Serial.println("✅ Đã reset textContents do nhận mảng text rỗng!");
+                }
+                // Nếu là mảng các object text
+                else if (doc[0].is<JsonObject>() && doc[0].containsKey("data") && doc[0].containsKey("info")) {
+                    // Cập nhật lại rowsTextInEachShapeFilter dựa trên các info nhận được
+                    memset(rowsTextInEachShapeFilter, 0, sizeof(rowsTextInEachShapeFilter));
+                    for (JsonObject msg : doc.as<JsonArray>()) {
+                        if (msg["info"].is<JsonArray>()) {
+                            int group = msg["info"][0].as<int>();
+                            int row = msg["info"][1].as<int>();
+                            if (group >= 0 && group < MAX_GROUPS && row >= 0 && row < MAX_LINES_PER_GROUP) {
+                                if (row + 1 > rowsTextInEachShapeFilter[group]) {
+                                    rowsTextInEachShapeFilter[group] = row + 1;
+                                }
+                            }
+                        }
+                    }   
+                    // Không cần gọi get_CoordsAndID nếu không có mảng tọa độ mới
+                    mapDataToTextContents(doc.as<JsonArray>(), textContents);
+                    saveConfig(doc, "/DATA.json");
+                    showAllTextLines(textCoorID, textContents);
+                    Serial.println("✅ Đã lưu DATA.json và cập nhật hiển thị text!");
+                } else {
+                    Serial.println("❌ Không nhận diện được loại JSON!");
+                }
             }
             else {
                 Serial.println("❌ Không nhận diện được loại JSON!");
@@ -396,7 +463,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
         webSocketServer.sendTXT(num, jsonOut);
         Serial.println("✅ Đã gửi lại nội dung CONFIG.json và DATA.json cho client.");
     }
-    
 }
 
 void setup_littleFS () {
@@ -414,9 +480,9 @@ void setup_littleFS () {
 }
 void setup_ledPanel(){
     HUB75_I2S_CFG mxconfig(
-    PANEL_RES_X * 2,
-    PANEL_RES_Y / 2,
-    1,
+    PANEL_RES_X*2,              // DO NOT CHANGE THIS
+    PANEL_RES_Y/2,
+    PANEL_CHAIN_LEN,
     HUB75_I2S_CFG::i2s_pins{
       R1_PIN, G1_PIN, B1_PIN, R2_PIN, G2_PIN, B2_PIN,
       A_PIN, B_PIN, C_PIN, D_PIN, E_PIN,
@@ -425,11 +491,10 @@ void setup_ledPanel(){
   );
   dma_display = new MatrixPanel_I2S_DMA(mxconfig);
   dma_display->begin();
-  dma_display->setBrightness8(90);
+  dma_display->setBrightness8(128);
   dma_display->clearScreen();
 
-
-  virtualDisp = new VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>(1, 1, PANEL_RES_X, PANEL_RES_Y);
+  virtualDisp = new VirtualMatrixPanel_T<PANEL_CHAIN_TYPE, MyScanTypeMapping>(VDISP_NUM_ROWS, VDISP_NUM_COLS, PANEL_RES_X, PANEL_RES_Y);
   virtualDisp->setDisplay(*dma_display);
 
   myBLACK = virtualDisp->color565(0, 0, 0);
@@ -454,25 +519,31 @@ DynamicJsonDocument createSampleJson() {
     return doc;
 }
 void mapDataToTextContents(JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
-    //xóa hết trước khi map
-    // for (int g = 0; g < MAX_GROUPS; g++) {
-    //     for (int r = 0; r < MAX_LINES_PER_GROUP; r++) {
-    //         textContents[g][r][0] = '\0';
-    //     }
-    // }
+    // xóa hết trước khi map
+    for (int g = 0; g < MAX_GROUPS; g++) {
+        for (int r = 0; r < MAX_LINES_PER_GROUP; r++) {
+            textContents[g][r][0] = '\0';
+        }
+    }
 
     for (JsonVariant v : arr) {
         if (!v.is<JsonObject>()) continue;
         String content = v["data"] | "";
         if (!v["info"].is<JsonArray>()) continue;
         JsonArray info = v["info"].as<JsonArray>();
-        if (info.size() < 2) continue;
+        if (info.size() < 2) continue;  
 
         int group = info[0].as<int>();
-        int row = info[1].as<int>();
-        if (group >= 0 && group < MAX_GROUPS && row >= 0 && row < MAX_LINES_PER_GROUP) {
-            strncpy(textContents[group][row], content.c_str(), MAX_TEXT_LENGTH - 1);
-            textContents[group][row][MAX_TEXT_LENGTH - 1] = '\0';
+        int id = info[1].as<int>();
+        if (group >= 0 && group < MAX_GROUPS) {
+            // Tìm đúng vị trí dòng theo id
+            for (int i = 0; i < rowsTextInEachShapeFilter[group]; i++) {
+                if (textCoorID[group][i].id == id) {
+                    strncpy(textContents[group][i], content.c_str(), MAX_TEXT_LENGTH - 1);
+                    textContents[group][i][MAX_TEXT_LENGTH - 1] = '\0';
+                    break;
+                }
+            }
         }
     }
     Serial.println("Nội dung textContents sau khi map:");
@@ -483,7 +554,7 @@ void mapDataToTextContents(JsonArray arr, char textContents[MAX_GROUPS][MAX_LINE
             }
         }
     }
-} 
+}
 
 const GFXfont* getFontByName(const String& name) {
     if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
@@ -507,6 +578,7 @@ void handleSerialConfig() {
             inputString += inChar;
         }
     }
+    // Serial.println("Nhận dữ liệu từ Serial: " + inputString);
 
     // Nếu đã nhận đủ 1 dòng JSON
     if (stringComplete) {
@@ -516,6 +588,30 @@ void handleSerialConfig() {
             Serial.print("Lỗi parse JSON: ");
             Serial.println(err.c_str());
         } else {
+            // Xử lý lệnh xóa file
+            if (doc.containsKey("delete")) {
+                String fileToDelete = doc["delete"].as<String>();
+                if (fileToDelete == "all") {
+                    // Xóa tất cả file trong LittleFS
+                    File root = LittleFS.open("/", "r");
+                    File file = root.openNextFile();
+                    while (file) {
+                        String fname = file.name();
+                        file.close();
+                        LittleFS.remove(fname);
+                        Serial.println("Đã xóa file: " + fname);
+                        file = root.openNextFile();
+                    }
+                    Serial.println("Đã xóa tất cả file!");
+                } else {
+                    if (LittleFS.exists(fileToDelete)) {
+                        LittleFS.remove(fileToDelete);
+                        Serial.println("Đã xóa file: " + fileToDelete);
+                    } else {
+                        Serial.println("Không tìm thấy file: " + fileToDelete);
+                    }
+                }
+            }
             // Cấu hình WiFi
             if (doc.containsKey("ssid") && doc.containsKey("password")) {
                 const char* ssid = doc["ssid"];
@@ -553,7 +649,6 @@ void handleSerialConfig() {
         stringComplete = false;
     }
 }
-
 void setup() {
 
     Serial.begin(115200);
@@ -576,7 +671,7 @@ void setup() {
     // Hiển thị chữ lên màn hình
     // showAllTextLines(textCoorID, textContents);
 void loop() {
-    // handleSerialConfig(); // Xử lý cấu hình từ Serial nếu có
+    handleSerialConfig(); // Xử lý cấu hình từ Serial nếu có
   // Không làm gì trong loo
   webSocketServer.loop();
   server.handleClient();
