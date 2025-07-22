@@ -63,7 +63,6 @@ void loop(){
 // #include <WebServer.h>
 // #include <WebSocketsServer.h>
 #include <Fonts/FreeSans9pt7b.h>
-#include <Fonts/FreeMono9pt7b.h>
 #include <Fonts/Picopixel.h>
 #include <Fonts/TomThumb.h>
 #include <Fonts/mythic_5pixels.h>
@@ -71,11 +70,6 @@ void loop(){
 // #include <Fonts/hud5pt7b.h>
 // #include <Fonts/04B_5px.h>
 #include <Fonts/Tiny3x3a2pt7b.h>
-#if defined ESP32
-#include <ESPAsyncWebServer.h>
-#endif
-
-
 // ==== Pin mapping (giữ nguyên như bạn đang dùng) ====
 #define R1_PIN 3
 #define G1_PIN 10
@@ -159,6 +153,7 @@ int numberContents[MAX_TEXT_LENGTH]; // Dùng để lưu số đếm, nếu có
 // //   addConsoleLine(line + '\n');
 // }
 
+#include "WifiPostal.h"
 
 // ==== Scan type mapping ====
 #define PANEL_SCAN_TYPE FOUR_SCAN_32PX_HIGH // hoặc FOUR_SCAN_64PX_HIGH tùy panel thực tế
@@ -171,6 +166,7 @@ VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>* virtualDisp = nullptr;
 // ==== Màu sắc mẫu ====
 uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE;
 
+#include <ESPAsyncWebServer.h>
 AsyncWebServer server(80);
 AsyncWebSocket webSocketServer("/ws");
 // void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
@@ -192,7 +188,7 @@ void drawTextInShape(DynamicJsonDocument doc);
 void clearMSG(DynamicJsonDocument doc);
 void setup_littleFS();
 void setup_ledPanel();
-void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const String& font, uint16_t color);
+
 void mapDataToTextContents( JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 void mapDocToTextContents(const DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 DynamicJsonDocument createSampleJson() ;
@@ -256,7 +252,7 @@ void drawShapeFromType(DynamicJsonDocument dataIn) {
 }
 
 DynamicJsonDocument parseStringToJSON(String jsonStr) {
-    DynamicJsonDocument doc(8000);
+    DynamicJsonDocument doc(1024);
     DeserializationError err = deserializeJson(doc, jsonStr);
     if (err) {
         Serial.print("Lỗi parse JSON: ");
@@ -312,11 +308,9 @@ void GenNumber(int number,int x, int y, int font, uint16_t color = myWHITE) {
                 0b01111111, // 8: A B C D E F G
                 0b01101111  // 9: A B C D F G
             };
-            if (font < 2){virtualDisp->fillRect(x, y, 5, 6, myBLACK);} // Xóa vùng số cũ trước khi vẽ số mới
-            if (font == 2){virtualDisp->fillRect(x+1, y, 3, 5, myBLACK);} // Xóa vùng số cũ trước khi vẽ số mới
+            virtualDisp->fillRect(x, y, 5, 6, myBLACK); // Xóa vùng số cũ trước khi vẽ số mới
             // Adjust x, y to top-left of 5x5 box
             x = x ;
-            if (number == 1) x-= 1;
             y = y ; // Bắt đầu vẽ từ (x+1, y+1) để tạo khoảng cách
             // Segment positions for 5x5 grid
             // A: (x+1,y) to (x+3,y)
@@ -335,55 +329,42 @@ void GenNumber(int number,int x, int y, int font, uint16_t color = myWHITE) {
             if (segs & 0x01)
                 if ( font == 0) {virtualDisp->drawLine(x+1, y, x+4, y, color);}
                 else if (font == 1) {virtualDisp->drawLine(x+1, y+1, x+3, y+1, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+1, y, x+3, y, color); }
                 // else if (font == 2) {virtualDisp->drawLine(x+1, y+2, x+4, y+2, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x+1, y+3, x+4, y+3, color);}
             // B
             if (segs & 0x02)
                 if ( font == 0) {virtualDisp->drawLine(x+4, y, x+4, y+2, color);}
                 else if (font == 1) {virtualDisp->drawLine(x+4, y+2, x+4, y+3, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+3, y, x+3, y+2, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x+4, y+2, x+4, y+4, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x+4, y+3, x+4, y+5, color);}
             // C
             if (segs & 0x04)
                 if ( font == 0) {virtualDisp->drawLine(x+4, y+2, x+4, y+4, color);}
                 else if (font == 1) {virtualDisp->drawLine(x+4, y+3, x+4, y+4, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+3, y+2, x+3, y+4, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x+4, y+4, x+4, y+6, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x+4, y+5, x+4, y+7, color);}
             // D
             if (segs & 0x08)
                 if ( font == 0) {virtualDisp->drawLine(x, y+4, x+3, y+4, color);}
                 else if (font == 1) {virtualDisp->drawLine(x+1, y+5, x+3, y+5, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+1, y+4, x+3, y+4, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x+1, y+6, x+3, y+6, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x+1, y+7, x+3, y+7, color);}
             // E
             if (segs & 0x10)
                 if ( font == 0) {virtualDisp->drawLine(x, y+2, x, y+4, color);}
                 else if (font == 1) {virtualDisp->drawLine(x, y+3, x, y+4, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+1, y+2, x+1, y+4, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x, y+4, x, y+6, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x, y+5, x, y+7, color);}
             // F
             if (segs & 0x20)
                 if ( font == 0) {virtualDisp->drawLine(x, y, x, y+2, color);}
                 else if (font == 1) {virtualDisp->drawLine(x, y+2, x, y+3, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+1, y, x+1, y+2, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x, y+2, x, y+4, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x, y+3, x, y+5, color);}
             // G
             if (segs & 0x40)
                 if ( font == 0) {virtualDisp->drawLine(x+1, y+2, x+3, y+2, color);}
                 else if (font == 1) {virtualDisp->drawLine(x+1, y+3, x+3, y+3, color);}
-                else if (font == 2) { virtualDisp->drawLine(x+1, y+2, x+3, y+2, color); }
-
                 // else if (font == 2) {virtualDisp->drawLine(x+1, y+4, x+3, y+4, color);}
                 // else if (font == 3) {virtualDisp->drawLine(x+1, y+5, x+3, y+5, color);}
 }
@@ -398,9 +379,6 @@ void showBlockNumber(int number, int x, int y, int font, uint16_t color = myWHIT
         GenNumber(digits[i], x + i * 6, y, font, color);
     }
 }
-
-
-
 void draw_MSG(DynamicJsonDocument doc)
 {
     virtualDisp->fillScreen(myBLACK);
@@ -548,7 +526,6 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
         
     }
 }
-
 void setup_WS() {
     Serial.println("=== Khởi tạo WebSocket ===");
     delay(1000);
@@ -564,7 +541,6 @@ void setup_WS() {
 
     webSocketServer.onEvent(webSocketEvent);      // Đăng ký sự kiện trước
     server.addHandler(&webSocketServer);          // Thêm WebSocket vào server
-    server.serveStatic("/", LittleFS, "/").setDefaultFile("index_aP.html");
     server.begin();                               // Bắt đầu server
     Serial.println("✅ HTTP & WebSocket server started!");
 }
@@ -591,7 +567,7 @@ void saveConfig(const DynamicJsonDocument& doc, String filePath ) {
 
 // Tác dụng: đọc nội dung từ file config.json rồi return biến struct Config
 DynamicJsonDocument loadConfig(String filePath) {
-  DynamicJsonDocument doc(8000);
+  DynamicJsonDocument doc(4024);
   if (!LittleFS.exists(filePath)) {
     Serial.println("⚠️ File config chưa tồn tại. Sẽ tạo mặc định...");
     saveConfig(doc, filePath); // Lưu file mặc định
@@ -633,13 +609,12 @@ void setup_littleFS () {
     if (!LittleFS.begin()) {
         Serial.println("❌ Không thể mount LittleFS! Đang format lại...");
         LittleFS.format(); // Thêm dòng này để format lại
-      if (!LittleFS.begin()) {
-          Serial.println("❌ Vẫn không mount được LittleFS sau khi format!");
-          return;
-      }
-      Serial.println("✅ Đã format và mount lại LittleFS thành công!");
+    if (!LittleFS.begin()) {
+        Serial.println("❌ Vẫn không mount được LittleFS sau khi format!");
+        return;
     }
-
+    Serial.println("✅ Đã format và mount lại LittleFS thành công!");
+    }
 }
 void setup_ledPanel(){
     Serial.println("=== Khởi tạo LED Panel ===");
@@ -750,6 +725,15 @@ void mapDataToTextContents(JsonArray arr, char textContents[MAX_GROUPS][MAX_LINE
     }
 } 
 
+const GFXfont* getFontByName(const String& name) {
+    if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
+    else if (name == "mythic_5pixels") return &mythic_pixels5pt7b;
+    else if (name == "B_5px") return &B_085pt7b;
+    else if (name == "Tiny3x3a2pt7b") return &Tiny3x3a2pt7b;
+    else if (name == "TomThumb") return &TomThumb; // nếu bạn thêm TomThumb.h
+    else if (name == "Picopixel") return &Picopixel; // nếu bạn thêm Picopixel.h
+    else return nullptr; // font không hỗ trợ
+}
 
 void handleSerialConfig() {
     static String inputString = "";
@@ -768,7 +752,7 @@ void handleSerialConfig() {
 
     // Nếu đã nhận đủ 1 dòng JSON
     if (stringComplete) {
-        DynamicJsonDocument doc(8000);
+        DynamicJsonDocument doc(256);
         DeserializationError err = deserializeJson(doc, inputString);
         if (err) {
             Serial.print("Lỗi parse JSON: ");
@@ -843,26 +827,6 @@ int getTotalPages() {
     }
     return 0;
 }
-
-int countDigits(int number) {
-  if (number == 0) return 1;
-  int count = 0;
-  int n = abs(number);
-  while (n > 0) {
-    n /= 10;
-    count++;
-  }
-  return count;
-}
-
-uint8_t autoMiddle(uint8_t px, int number) {
-    // Tính toán vị trí vẽ số sao cho căn giữa
-
-    uint8_t totalWidth = (px+1)*countDigits(number);
-
-    return totalWidth/2;
-}
-
 void showCurrentPage(int currentPage) {
     JsonArray pages = JsonArray();
     // Serial.println("Page size: " + String(TotalPages));
@@ -875,7 +839,6 @@ void showCurrentPage(int currentPage) {
         DynamicJsonDocument pageDoc(2048);
         pageDoc.set(pages[currentPage]);
         drawShapeFromType(pageDoc);
-        
         
         numberContents[0] = count0;
         numberContents[1] = count1;
@@ -932,6 +895,12 @@ void showCurrentPage(int currentPage) {
                             }
                         }
                     }
+                    if(i < 3){
+                        virtualDisp->fillRect(rectX, rectY, rectWidth, rectHeight, myBLACK);
+                    } else {
+                        // Nếu là shape 4 thì không vẽ hình chữ nhật
+                        rectX = 0; rectY = 0; rectWidth = 0; rectHeight = 0;
+                    }
                     int x = 0, y = 0;
                     uint16_t color = myWHITE;
                     JsonArray groupTextInEachShape = textInfoArray[0].as<JsonArray>();
@@ -943,9 +912,7 @@ void showCurrentPage(int currentPage) {
                             if (rowInfor_xy.size() >= 2) {
                                 x = rowInfor_xy[0].as<int>();
                                 y = rowInfor_xy[1].as<int>() ;//
-                                
                             }
-
                         }
                         if (rowInfor.containsKey("color")) {
                             String hex = rowInfor["color"].as<String>(); // VD: "#FF0000"
@@ -962,18 +929,11 @@ void showCurrentPage(int currentPage) {
                     textCoorID[i][0].y = y;
                     textCoorID[i][0].color = color;
                     
-
-                    // virtualDisp->setCursor(x, y- 7);
-                    // virtualDisp->setTextColor(color);
-                    // virtualDisp->setTextSize(1);
-                    // virtualDisp->print(numberContents[i]);
-
-                    int8_t digits = countDigits(numberContents[i]);                    
-                    if (digits == 1) printLedPanel(numberContents[i], x, y+1, 1, "FreeSans9pt7b", color);
-                    if (digits == 2) printLedPanel(numberContents[i], x, y, 1, "mythic_pixels5pt7b", color);
-                    if (digits == 3) printLedPanel(numberContents[i], x, y, 1, "", color); //3 này ổn đấy
-                    if (digits == 4) printLedPanel(numberContents[i], x, y, 1, "", color);
-               }
+                    virtualDisp->setCursor(x, y- 7);
+                    virtualDisp->setTextColor(color);
+                    virtualDisp->setTextSize(1);
+                    virtualDisp->print(numberContents[i]);
+                }
             }
         }
         // 7-8,7-14,7-24,7-30,38-8,38-14,38-24,38-30
@@ -1010,21 +970,6 @@ void showCurrentPage(int currentPage) {
                 showBlockNumber(numberContents[i], x, y-1, 1, color);
             }
         }
-        if(currentPage == 3){
-            // Hiển thị đếm ở trang 1
-            for(int i = 0; i < 8; i++) {
-                int x = textCoorID[i][0].x;
-                int y = textCoorID[i][0].y - 5;
-                uint16_t color = textCoorID[i][0].color;
-                showBlockNumber(numberContents[i], x, y, 2, color);
-            }
-            // Hiển thị đếm ở trang
-        } 
-        GenNumber(1, 0, 1, 2, virtualDisp->color565(93, 71, 255));
-        GenNumber(2, 32, 1, 2, virtualDisp->color565(93, 71, 255));
-        GenNumber(3, 0, 17, 2,  virtualDisp->color565(93, 71, 255));
-        GenNumber(4, 32, 17, 2,  virtualDisp->color565(93, 71, 255));
-
         // else {
         //     Serial.println("Không ở trang 1, không hiển thị đếm");
         // }
@@ -1034,56 +979,7 @@ void showCurrentPage(int currentPage) {
     }
 }
 
-const GFXfont* getFontByName(const String& name) {
-    if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
-    else if (name == "FreeMono9pt7b") return &FreeMono9pt7b;
-    
-    else if (name == "mythic_5pixels") return &mythic_pixels5pt7b;
-    else if (name == "B_5px") return &B_085pt7b;
-    else if (name == "Tiny3x3a2pt7b") return &Tiny3x3a2pt7b;
-    else if (name == "TomThumb") return &TomThumb; // nếu bạn thêm TomThumb.h
-    else if (name == "Picopixel") return &Picopixel; // nếu bạn thêm Picopixel.h
-    else return nullptr; // font không hỗ trợ
-}
 
-void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const String& font, uint16_t color = myWHITE) {
-    // In chữ lên LED Panel
-    virtualDisp->setTextColor(color);
-    
-    
-    if (font != "") {
-      // if (isDigit(font[0])) {
-      //   Serial.print ("Font là số: ");
-      //   Serial.println(font.toInt());
-      //   Serial.print ("Số : ");
-      //   Serial.println((int)number);
-      //   if (font.toInt() == 0)  {GenNumber((int)number, x - autoMiddle(5, number), y, 0, color); return;}
-      //   else if (font.toInt() == 1)  {GenNumber((int)number, x - autoMiddle(3, number), y, 1, color); return;}
-      //   else if (font.toInt() == 2)  {GenNumber((int)number, x - autoMiddle(3, number), y, 2, color); return;}
-      //   else {GenNumber(number, x, y, 5*fontSize, color); return;}        
-      // }
-      const GFXfont* fontPtr = getFontByName(font);
-      if (fontPtr) {
-          virtualDisp->setFont(fontPtr);
-      } else {
-          Serial.println("❌ Font không hỗ trợ: " + font);
-          virtualDisp->setFont(&mythic_pixels5pt7b); // Mặc định nếu không tìm thấy font
-      }
-    }
-    else virtualDisp->setFont(); // Mặc định nếu không có font
-    int16_t x1, y1;
-    uint16_t w, h;
-    virtualDisp->getTextBounds("0", 0, 0, &x1, &y1, &w, &h);
-    uint8_t fontColPx = w*fontSize;
-    Serial.println ("Font col px: " + String(fontColPx));
-
-    int8_t digitOfNumber = countDigits(number);
-    if (font == "") x = x - autoMiddle(5, number);    
-    else x = x - autoMiddle(fontColPx, number);
-    if (font == "") virtualDisp->setCursor(x, y-7);
-    else virtualDisp->setCursor(x, y);
-    virtualDisp->print(number);
-}
 
 void enterConfigMode() {
     configMode = true;
@@ -1139,9 +1035,8 @@ void setup() {
     Serial.begin(115200);
     // WiFi_AP_setup(server) ; // Khởi tạo WiFi AP
     // delay(5000);
+    // setup_WS(); // Khởi tạo WebSocket sau khi khởi tạo panel
     setup_littleFS();
-    setup_WS(); // Khởi tạo WebSocket sau khi khởi tạo panel
-
     Serial.println("✅ Đã khởi tạo LittleFS và LED Panel thành công!");
     setup_ledPanel();
     if (!virtualDisp || !dma_display) {
@@ -1255,32 +1150,32 @@ void loop() {
         
     }
     lastModeBtn = modeBtn;
-    static uint8_t debounceBtn = 10;
+    
     // Xử lý nút đếm
     if (digitalRead(COUNT0_BUTTON_PIN) == LOW) {
         count0++;
        // showCountsOnPanel();
         showCurrentPage(CurrentPage);
-        delay(debounceBtn); // chống bounce
+        delay(200); // chống bounce
     }
     // Xử lý nút đếm
     if (digitalRead(COUNT1_BUTTON_PIN) == LOW) {
         count1++;
        // showCountsOnPanel();
         showCurrentPage(CurrentPage);
-        delay(debounceBtn); // chống bounce
+        delay(200); // chống bounce
     }
     if (digitalRead(COUNT2_BUTTON_PIN) == LOW) {
         count2++;
         // showCountsOnPanel();
         showCurrentPage(CurrentPage );
-        delay(debounceBtn);
+        delay(200);
     }
     if (digitalRead(COUNT3_BUTTON_PIN) == LOW) {
         count3++;
         // showCountsOnPanel();
         showCurrentPage(CurrentPage );
-        delay(debounceBtn);
+        delay(200);
     }
 
     // Nhận dữ liệu từ LoRa E32 qua Serial1
@@ -1316,8 +1211,6 @@ void loop() {
             DynamicJsonDocument doc(8024);
             DeserializationError err = deserializeJson(doc, serialJson);
             if (!doc.isNull()) {
-              // serializeJson(doc, Serial);
-                Serial.println();
                 // Nếu là object có trường "pages"
                 if (doc.is<JsonObject>() && doc.containsKey("pages") && doc["pages"].is<JsonArray>()) {
                     JsonArray pages = doc["pages"].as<JsonArray>();

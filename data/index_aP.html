@@ -1,0 +1,797 @@
+ <!DOCTYPE html>
+      <html>
+      <head>
+        <title>LMD Shape Editor</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <style>
+        body{font-family:sans-serif;}
+        .card{border:1px solid #ccc;padding:16px;margin:8px;border-radius:8px;}
+        label{display:block;margin-top:8px;}
+        #canvasWrap{overflow:auto;}
+        canvas{background:#222;display:block;}
+        .btn{margin:4px;}
+        </style>
+      </head>
+      <body>
+        <h2>LMD Shape & Text Editor</h2>
+        <div class="card">
+        <label>Rows: <input id="rows" type="number" min="1" max="8" value="10"></label>
+        <label>Cols: <input id="cols" type="number" min="1" max="8" value="10"></label>
+        <button class="btn" onclick="resizeCanvas()">Apply</button>
+        </div>
+        <div class="card">
+        <button class="btn" onclick="addShape('line')">Add Line</button>
+        <button class="btn" onclick="addShape('rect')">Add Rect</button>
+        <button class="btn" onclick="addShape('round')">Add Round</button>
+        <button class="btn" onclick="addShape('triangle')">Add Triangle</button>
+        <button class="btn" onclick="addText()">Add Text</button>
+        </div>
+
+        <div id="canvasWrap">
+        <canvas id="lmdCanvas" width="640" height="320"></canvas>
+        </div>
+        <div class="card" id="tabsWrap">
+        <button class="btn" onclick="addTab()">+ Add Page</button>
+        <span id="tabs"></span>
+        <table id="shapeTable" border="1" style="width:100%;margin-top:12px;">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Type</th>
+                    <th>Props</th>
+                    <th>Color</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        </div>
+        <div class="card">
+        <button class="btn" onclick="saveLMD()">Save</button>
+        <button class="btn" onclick="loadLMD()">Load</button>
+        <input type="text" style="width:100%;margin-top:8px;" placeholder="Paste JSON here to load...">
+        </div>
+        <div class="card" id="multiCardWrap" style="display:flex;gap:16px;flex-wrap:wrap;">
+            <!-- Card 1 -->
+            <div class="card" style="flex:1;min-width:180px;">
+                <h4>ID: <span id="card1-id">1</span> - <span id="card1-name">Card 1</span></h4>
+                <label>Plan: <input id="card1-plan" type="text"></label>
+                <label>Result: <input id="card1-result" type="text"></label>
+                <button class="btn" onclick="genCardJson(1)">Set</button>
+            </div>
+            <!-- Card 2 -->
+            <div class="card" style="flex:1;min-width:180px;">
+                <h4>ID: <span id="card2-id">2</span> - <span id="card2-name">Card 2</span></h4>
+                <label>Plan: <input id="card2-plan" type="text"></label>
+                <label>Result: <input id="card2-result" type="text"></label>
+                <button class="btn" onclick="genCardJson(2)">Set</button>
+            </div>
+            <!-- Card 3 -->
+            <div class="card" style="flex:1;min-width:180px;">
+                <h4>ID: <span id="card3-id">3</span> - <span id="card3-name">Card 3</span></h4>
+                <label>Plan: <input id="card3-plan" type="text"></label>
+                <label>Result: <input id="card3-result" type="text"></label>
+                <button class="btn" onclick="genCardJson(3)">Set</button>
+            </div>
+            <!-- Card 4 -->
+            <div class="card" style="flex:1;min-width:180px;">
+                <h4>ID: <span id="card4-id">4</span> - <span id="card4-name">Card 4</span></h4>
+                <label>Plan: <input id="card4-plan" type="text"></label>
+                <label>Result: <input id="card4-result" type="text"></label>
+                <button class="btn" onclick="genCardJson(4)">Set</button>
+            </div>
+        </div>
+        <div class="card">
+            <label>Update Card by JSON:</label>
+            <input id="card-json-input" type="text" style="width:100%;" placeholder='{"id":1,"plan":"1234","result":"5678"}'>
+            <button class="btn" onclick="updateCardFromJson()">Update Card</button>
+        </div>
+        <div class="card">
+            <label>Mapping Data (JSON):</label>
+            <input id="mapping-json-input" type="text" style="width:100%;" value='[{"id":1,"plan":0,"result":1},{"id":2,"plan":2,"result":3},{"id":3,"plan":4,"result":5},{"id":4,"plan":6,"result":7}]'>
+
+        </div>
+        <div class="card"></div>
+            <label>CMND Update Output:</label>
+            <input id="cmnd-update-output" type="text" style="width:100%;" readonly>
+        </div>
+        <script>
+        function genCardJson(cardId) {
+            const plan = document.getElementById('card' + cardId + '-plan').value;
+            const result = document.getElementById('card' + cardId + '-result').value;
+            const json = {
+                id: cardId,
+                plan: plan,
+                result: result
+            };
+            // alert(JSON.stringify(json));
+
+            // Generate cmnd:update string
+            let mappingStr = document.getElementById('mapping-json-input').value;
+            let mapping;
+            try {
+                mapping = JSON.parse(mappingStr);
+            } catch (e) {
+                mapping = [];
+            }
+            // Find mapping for this card
+            let map = mapping.find(m => m.id == cardId);
+            if (!map) {
+                document.getElementById('cmnd-update-output').value = '';
+                return;
+            }
+            // Build data array
+            let dataArr = [];
+            dataArr[map.plan] = plan;
+            dataArr[map.result] = result;
+            // Fill undefined with empty string
+            for (let i = 0; i < 4; i++) {
+                if (typeof dataArr[i] === "undefined") dataArr[i] = "";
+            }
+            let out = `{"cmnd":"update",data[${dataArr.join(",")}]}`;
+            document.getElementById('cmnd-update-output').value = out;
+        }
+        </script><script>
+        function updateCardFromJson() {
+            let val = document.getElementById('card-json-input').value;
+            try {
+                let obj = JSON.parse(val);
+                if (!obj.id || typeof obj.plan === "undefined" || typeof obj.result === "undefined") {
+                    alert("JSON must have id, plan, result");
+                    return;
+                }
+                let cardId = parseInt(obj.id);
+                if (cardId < 1 || cardId > 4) {
+                    alert("id must be 1-4");
+                    return;
+                }
+                document.getElementById('card' + cardId + '-plan').value = obj.plan;
+                document.getElementById('card' + cardId + '-result').value = obj.result;
+            } catch (e) {
+                alert("Invalid JSON");
+            }
+        }
+        function genCardJson(cardId) {
+            const plan = document.getElementById('card' + cardId + '-plan').value;
+            const result = document.getElementById('card' + cardId + '-result').value;
+            const json = {
+                id: cardId,
+                plan: plan,
+                result: result
+            };
+            alert(JSON.stringify(json));
+        }
+        
+        </script>
+        <script>
+        let pages = [{shapes:[]}];
+        let currentPageIdx = 0;
+        let shapes = pages[0].shapes;
+        let rows = 1, cols = 1;
+        let moduleW = 64, moduleH = 32;
+        let canvas = document.getElementById('lmdCanvas');
+        let ctx = canvas.getContext('2d');
+
+    //     function getColor() {
+    //   return document.getElementById('color').value || "#0f0";
+    //     }
+        function getRadius() {
+      return parseInt(document.getElementById('radius').value) || 5;
+        }
+    canvas.addEventListener('click', function(e) {
+    let rect = canvas.getBoundingClientRect();
+    let mx = Math.round((e.clientX - rect.left) * canvas.width / rect.width);
+    let my = Math.round((e.clientY - rect.top) * canvas.height / rect.height);
+
+    // Tìm object gần nhất
+    let foundIdx = -1;
+    for(let i=shapes.length-1; i>=0; i--) {
+        let s = shapes[i];
+        if(s.type=='rect' && mx>=s.x && mx<=s.x+s.w && my>=s.y && my<=s.y+s.h) foundIdx = i;
+        else if(s.type=='round' && Math.hypot(mx-s.x, my-s.y)<=(s.radius||getRadius())) foundIdx = i;
+        else if(s.type=='line' && Math.abs((mx-s.x)/(s.w||1)-(my-s.y)/(s.h||1))<0.2) foundIdx = i;
+        else if(s.type=='triangle') {
+            if(Math.abs(mx-s.x)<8 && Math.abs(my-s.y)<8) foundIdx = i;
+        }
+        else if(s.type=='text' && Math.abs(mx-s.x)<20 && Math.abs(my-s.y)<12) foundIdx = i;
+        if(foundIdx!=-1) break;
+    }
+    if(foundIdx!=-1) {
+        let s = shapes[foundIdx];
+        // Tạo modal sửa/xóa
+        let modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+
+        let html = `<div style="background:#fff;padding:20px;border-radius:8px;min-width:220px;">
+            <h3>Edit Shape</h3>`;
+        if(s.type=='rect' || s.type=='line' || s.type=='round' || s.type=='triangle') {
+            html += `<label>X: <input id="edit-x" type="number" value="${s.x||0}"></label>
+            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>`;
+        }
+        if(s.type=='rect' || s.type=='line') {
+            html += `<label>Width: <input id="edit-w" type="number" value="${s.w||10}"></label>
+            <label>Height: <input id="edit-h" type="number" value="${s.h||10}"></label>`;
+        }
+        if(s.type=='triangle') {
+            html += `<label>X1: <input id="edit-x1" type="number" value="${s.x1||0}"></label>
+            <label>Y1: <input id="edit-y1" type="number" value="${s.y1||0}"></label>
+            <label>X2: <input id="edit-x2" type="number" value="${s.x2||0}"></label>
+            <label>Y2: <input id="edit-y2" type="number" value="${s.y2||0}"></label>`;
+        }
+        if(s.type=='round') {
+            html += `<label>Radius: <input id="edit-radius" type="number" value="${s.radius||getRadius()}"></label>`;
+        }
+        if(s.type=='text') {
+            html += `<label>Text: <input id="edit-content" type="text" value="${s.content||''}"></label>
+            <label>X: <input id="edit-x" type="number" value="${s.x||0}"></label>
+            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>`;
+        }
+        html += `<label>Color: <input id="edit-color" type="color" value="${s.color||'#0f0'}"></label>
+            <div style="margin-top:12px;text-align:right;">
+                <button id="edit-ok">OK</button>
+                <button id="edit-delete">Delete</button>
+                <button id="edit-cancel">Cancel</button>
+            </div>
+        </div>`;
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+
+        document.getElementById('edit-ok').onclick = function() {
+            if(s.type=='rect' || s.type=='line' || s.type=='round' || s.type=='triangle' || s.type=='text') {
+                s.x = parseInt(document.getElementById('edit-x').value) || 0;
+                s.y = parseInt(document.getElementById('edit-y').value) || 0;
+            }
+            if( s.type=='line') {
+                s.w = parseInt(document.getElementById('edit-w').value) || 0;
+                s.h = parseInt(document.getElementById('edit-h').value) || 10;
+            }
+            if(s.type=='rect') {
+                s.w = parseInt(document.getElementById('edit-w').value) || 10;
+                s.h = parseInt(document.getElementById('edit-h').value) || 10;
+            }
+            if(s.type=='triangle') {
+                s.x1 = parseInt(document.getElementById('edit-x1').value) || 0;
+                s.y1 = parseInt(document.getElementById('edit-y1').value) || 0;
+                s.x2 = parseInt(document.getElementById('edit-x2').value) || 0;
+                s.y2 = parseInt(document.getElementById('edit-y2').value) || 0;
+            }
+            if(s.type=='round') {
+                s.radius = parseInt(document.getElementById('edit-radius').value) || getRadius();
+            }
+            if(s.type=='text') {
+                s.content = document.getElementById('edit-content').value || '';
+            }
+            s.color = document.getElementById('edit-color').value || '#0f0';
+            drawAll();
+            document.body.removeChild(modal);
+        };
+        document.getElementById('edit-delete').onclick = function() {
+            shapes.splice(foundIdx,1);
+            drawAll();
+            document.body.removeChild(modal);
+        };
+        document.getElementById('edit-cancel').onclick = function() {
+            document.body.removeChild(modal);
+        };
+    }
+});
+function resizeCanvas() {
+    rows = parseInt(document.getElementById('rows').value);
+    cols = parseInt(document.getElementById('cols').value);
+    // Keep canvas resolution fixed at 64x32
+    canvas.width = moduleW;
+    canvas.height = moduleH;
+    // Optionally, scale up the canvas display size
+    canvas.style.width = (cols * moduleW) + "px";
+    canvas.style.height = (rows * moduleH) + "px";
+      drawAll();
+        }
+        function addShape(type) {
+            // Create modal for XY input
+            let modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.top = '0';
+            modal.style.left = '0';
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            modal.style.background = 'rgba(0,0,0,0.5)';
+            modal.style.display = 'flex';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            modal.innerHTML = `
+                <div style="background:#fff;padding:20px;border-radius:8px;min-width:220px;">
+                    <label>X: <input id="modal-x" type="number" value="10"></label>
+                    <label>Y: <input id="modal-y" type="number" value="10"></label>
+                    <label>Width: <input id="modal-w" type="number" value="40"></label>
+                    <label>Height: <input id="modal-h" type="number" value="10"></label>
+                    <label>X1: <input id="modal-x1" type="number" value="50"></label>
+                    <label>Y1: <input id="modal-y1" type="number" value="10"></label>
+                    <label>X2: <input id="modal-x2" type="number" value="50"></label>
+                    <label>Y2: <input id="modal-y2" type="number" value="30"></label>
+                    
+                    <label>Radius: <input id="modal-radius" type="number" value="5"></label>
+                    <label>Color:
+                        <select id="modal-color">
+                            <option value="#000000" style="background:#000000;color:#fff;">Black</option>
+                            <option value="#ffffff" style="background:#ffffff;color:#000;">White</option>
+                            <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
+                            <option value="#00ff00" style="background:#00ff00;color:#000;">Lime</option>
+                            <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
+                            <option value="#ffff00" style="background:#ffff00;color:#000;">Yellow</option>
+                            <option value="#00ffff" style="background:#00ffff;color:#000;">Cyan</option>
+                            <option value="#ff00ff" style="background:#ff00ff;color:#fff;">Magenta</option>
+                            <option value="#808080" style="background:#808080;color:#fff;">Gray</option>
+                            <option value="#800000" style="background:#800000;color:#fff;">Maroon</option>
+                            <option value="#808000" style="background:#808000;color:#fff;">Olive</option>
+                            <option value="#008000" style="background:#008000;color:#fff;">Green</option>
+                            <option value="#800080" style="background:#800080;color:#fff;">Purple</option>
+                            <option value="#008080" style="background:#008080;color:#fff;">Teal</option>
+                            <option value="#c0c0c0" style="background:#c0c0c0;color:#000;">Silver</option>
+                            <option value="#ffa500" style="background:#ffa500;color:#000;">Orange</option>
+                        </select>
+                    </label>
+                    <div style="margin-top:12px;text-align:right;">
+                        <button id="modal-ok">OK</button>
+                        <button id="modal-cancel">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            document.getElementById('modal-ok').onclick = function() {
+                let x = parseInt(document.getElementById('modal-x').value) || 0;
+                let y = parseInt(document.getElementById('modal-y').value) || 0;
+                let w = parseInt(document.getElementById('modal-w').value) || 0;
+                let h = parseInt(document.getElementById('modal-h').value) || 10;
+                let x1 = parseInt(document.getElementById('modal-x1').value) || 0;
+                let y1 = parseInt(document.getElementById('modal-y1').value) || 0;
+                let x2 = parseInt(document.getElementById('modal-x2').value) || 0;
+                let y2 = parseInt(document.getElementById('modal-y2').value) || 0;
+                let radius = parseInt(document.getElementById('modal-radius').value) || getRadius();
+                let color = document.getElementById('modal-color').value || 0x00ff00;
+                let s = {type:type, color:color};
+                if(type=='line') {
+                    s.x=x; s.y=y; s.w=w; s.h=h;
+                } else if(type=='rect') {
+                    s.x=x; s.y=y; s.w=w; s.h=h;
+                } else if(type=='round') {
+                    s.x=x; s.y=y; s.radius=getRadius();
+                } else if(type=='triangle') {
+                    s.x=x; s.y=y; s.x1=x1; s.y1=y1; s.x2=x2; s.y2=y2;
+                }
+                // Thay vì shapes.push(s), dùng:
+                pages[currentPageIdx].shapes.push(s);
+                drawAll();
+                document.body.removeChild(modal);
+            };
+            document.getElementById('modal-cancel').onclick = function() {
+                document.body.removeChild(modal);
+            };
+        }
+    function addText() {
+        // Mở modal để nhập thuộc tính text
+        let modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+        modal.innerHTML = `
+            <div style="background:#fff;padding:20px;border-radius:8px;min-width:220px;">
+                <label>Text: <input id="modal-content" type="text" value="Hello"></label>
+                <label>X: <input id="modal-x" type="number" value="10"></label>
+                <label>Y: <input id="modal-y" type="number" value="20"></label>
+                <label>Color:
+                <select id="modal-color">
+                    <option value="#000000" style="background:#000000;color:#fff;">Black</option>
+                    <option value="#ffffff" style="background:#ffffff;color:#000;">White</option>
+                    <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
+                    <option value="#00ff00" style="background:#00ff00;color:#000;">Lime</option>
+                    <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
+                    <option value="#ffff00" style="background:#ffff00;color:#000;">Yellow</option>
+                    <option value="#00ffff" style="background:#00ffff;color:#000;">Cyan</option>
+                    <option value="#ff00ff" style="background:#ff00ff;color:#fff;">Magenta</option>
+                    <option value="#808080" style="background:#808080;color:#fff;">Gray</option>
+                    <option value="#800000" style="background:#800000;color:#fff;">Maroon</option>
+                    <option value="#808000" style="background:#808000;color:#fff;">Olive</option>
+                    <option value="#008000" style="background:#008000;color:#fff;">Green</option>
+                    <option value="#800080" style="background:#800080;color:#fff;">Purple</option>
+                    <option value="#008080" style="background:#008080;color:#fff;">Teal</option>
+                    <option value="#c0c0c0" style="background:#c0c0c0;color:#000;">Silver</option>
+                    <option value="#ffa500" style="background:#ffa500;color:#000;">Orange</option>
+                </select>
+                </label>
+                <div style="margin-top:12px;text-align:right;">
+                    <button id="modal-ok">OK</button>
+                    <button id="modal-cancel">Cancel</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('modal-ok').onclick = function() {
+            let content = document.getElementById('modal-content').value || '';
+            let x = parseInt(document.getElementById('modal-x').value) || 0;
+            let y = parseInt(document.getElementById('modal-y').value) || 0;
+            let color = document.getElementById('modal-color').value || 0xffffff;
+            if(content) {
+                shapes.push({type:'text', x:x, y:y, content:content, color:color});
+                drawAll();
+            }
+            document.body.removeChild(modal);
+        };
+        document.getElementById('modal-cancel').onclick = function() {
+            document.body.removeChild(modal);
+        };
+    }
+
+    function drawAll() {
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+    for(let s of pages[currentPageIdx].shapes) {
+        ctx.save();
+        ctx.strokeStyle = s.color || "#0f0";
+        ctx.fillStyle = s.color || "#0f0";
+        if(s.type=='line') {
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x+s.w, s.y+s.h);
+          ctx.stroke();
+        } else if(s.type=='rect') {
+          ctx.strokeRect(s.x, s.y, s.w, s.h);
+        } else if(s.type=='round') {
+          ctx.beginPath();
+          ctx.arc(s.x, s.y, s.radius || getRadius(), 0, 2*Math.PI);
+          ctx.stroke();
+        } else if(s.type=='triangle') {
+          ctx.beginPath();
+          ctx.moveTo(s.x, s.y);
+          ctx.lineTo(s.x1, s.y1);
+          ctx.lineTo(s.x2, s.y2);
+          ctx.closePath();
+          ctx.stroke();
+        } else if(s.type=='text') {
+          ctx.font = "12px sans-serif";
+          ctx.fillText(s.content, s.x, s.y);
+        }
+        ctx.restore();
+      }
+        }
+
+        resizeCanvas();
+        
+
+        // Khởi tạo 1 page mặc định nếu chưa có
+        function ensurePages() {
+        if (pages.length === 0) {
+            pages.push({shapes:[], rows:1, cols:1});
+            currentPageIdx = 0;
+        }
+        }
+        ensurePages();
+
+        // Tab UI
+        function renderTabs() {
+            let html = '';
+            for(let i=0; i<pages.length; i++) {
+                html += `
+                <div class="card" style="display:inline-block;margin-right:8px;${i===currentPageIdx?'background:#e0f0ff;':''}">
+                    <button class="btn" onclick="switchTab(${i})" style="${i===currentPageIdx?'background:#3874ff;color:#fff':''}">Page ${i+1}</button>
+                    <button class="btn" onclick="deleteTab(${i})" ${pages.length<=1?'disabled':''}>Delete</button>
+                </div>
+                `;
+            }
+            document.getElementById('tabs').innerHTML = html;
+        }
+
+        // Sửa lại deleteTab để nhận index
+        function deleteTab(idx) {
+            if (pages.length <= 1) {
+                alert("Cannot delete the last page!");
+                return;
+            }
+            if (!confirm("Delete this page?")) return;
+            pages.splice(idx, 1);
+            if (currentPageIdx >= pages.length) currentPageIdx = pages.length - 1;
+            shapes = pages[currentPageIdx].shapes;
+            drawAll();
+            renderTabs();
+        }
+        function switchTab(idx) {
+            currentPageIdx = idx;
+            shapes = pages[currentPageIdx].shapes;
+            drawAll();
+            renderTabs();
+        }
+        function addTab() {
+        pages.push({shapes:[]});
+        currentPageIdx = pages.length-1;
+        shapes = pages[currentPageIdx].shapes;
+        drawAll();
+        renderTabs();
+        }
+
+        // Save/load shapes for current tab
+        function saveCurrentShapes() {
+        pages[currentPageIdx].shapes = JSON.parse(JSON.stringify(shapes));
+        pages[currentPageIdx].rows = rows;
+        pages[currentPageIdx].cols = cols;
+        }
+        function loadCurrentShapes() {
+        let p = pages[currentPageIdx];
+        shapes = JSON.parse(JSON.stringify(p.shapes||[]));
+        rows = p.rows||1;
+        cols = p.cols||1;
+        document.getElementById('rows').value = rows;
+        document.getElementById('cols').value = cols;
+        resizeCanvas();
+        drawAll();
+        }
+function renderShapeTable() {
+            let tbody = document.querySelector('#shapeTable tbody');
+            tbody.innerHTML = '';
+            shapes.forEach((s, i) => {
+                let props = '';
+                if(s.type==='rect'||s.type==='line') props = `x:${s.x}, y:${s.y}, w:${s.w}, h:${s.h}`;
+                else if(s.type==='round') props = `x:${s.x}, y:${s.y}, r:${s.radius}`;
+                else if(s.type==='triangle') props = `(${s.x},${s.y})-(${s.x1},${s.y1})-(${s.x2},${s.y2})`;
+                else if(s.type==='text') props = `x:${s.x}, y:${s.y}, "${s.content}"`;
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${i+1}</td>
+                    <td>${s.type}</td>
+                    <td>${props}</td>
+                    <td><span style="display:inline-block;width:20px;height:20px;background:${s.color||'#0f0'}"></span></td>
+                    <td>
+                        <button onclick="editShape(${i})">Edit</button>
+                        <button onclick="deleteShape(${i})">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        function editShape(idx) {
+        // Mở modal chỉnh sửa shape trực tiếp (không giả lập click)
+        let s = shapes[idx];
+        let modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '0';
+        modal.style.left = '0';
+        modal.style.width = '100vw';
+        modal.style.height = '100vh';
+        modal.style.background = 'rgba(0,0,0,0.5)';
+        modal.style.display = 'flex';
+        modal.style.alignItems = 'center';
+        modal.style.justifyContent = 'center';
+
+        let html = `<div style="background:#fff;padding:20px;border-radius:8px;min-width:220px;">
+            <h3>Edit Shape</h3>`;
+        if(s.type=='rect' || s.type=='line' || s.type=='round' || s.type=='triangle') {
+            html += `<label>X: <input id="edit-x" type="number" value="${s.x||0}"></label>
+            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>`;
+        }
+        if(s.type=='rect' || s.type=='line') {
+            html += `<label>Width: <input id="edit-w" type="number" value="${s.w||10}"></label>
+            <label>Height: <input id="edit-h" type="number" value="${s.h||10}"></label>`;
+        }
+        if(s.type=='triangle') {
+            html += `<label>X1: <input id="edit-x1" type="number" value="${s.x1||0}"></label>
+            <label>Y1: <input id="edit-y1" type="number" value="${s.y1||0}"></label>
+            <label>X2: <input id="edit-x2" type="number" value="${s.x2||0}"></label>
+            <label>Y2: <input id="edit-y2" type="number" value="${s.y2||0}"></label>`;
+        }
+        if(s.type=='round') {
+            html += `<label>Radius: <input id="edit-radius" type="number" value="${s.radius||getRadius()}"></label>`;
+        }
+        if(s.type=='text') {
+            html += `<label>Text: <input id="edit-content" type="text" value="${s.content||''}"></label>
+            <label>X: <input id="edit-x" type="number" value="${s.x||0}"></label>
+            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>`;
+        }
+        html += `<label>Color: <input id="edit-color" type="color" value="${s.color||'#0f0'}"></label>
+            <div style="margin-top:12px;text-align:right;">
+                <button id="edit-ok">OK</button>
+                <button id="edit-delete">Delete</button>
+                <button id="edit-cancel">Cancel</button>
+            </div>
+        </div>`;
+        modal.innerHTML = html;
+        document.body.appendChild(modal);
+        document.getElementById('edit-ok').onclick = function() {
+            if(s.type=='rect' || s.type=='line' || s.type=='round' || s.type=='triangle' || s.type=='text') {
+                s.x = parseInt(document.getElementById('edit-x').value) || 0;
+                s.y = parseInt(document.getElementById('edit-y').value) || 0;
+            }
+            if( s.type=='line') {
+                s.w = parseInt(document.getElementById('edit-w').value) || 0;
+                s.h = parseInt(document.getElementById('edit-h').value) || 10;
+            }
+            if(s.type=='rect') {
+                s.w = parseInt(document.getElementById('edit-w').value) || 10;
+                s.h = parseInt(document.getElementById('edit-h').value) || 10;
+            }
+            if(s.type=='triangle') {
+                s.x1 = parseInt(document.getElementById('edit-x1').value) || 0;
+                s.y1 = parseInt(document.getElementById('edit-y1').value) || 0;
+                s.x2 = parseInt(document.getElementById('edit-x2').value) || 0;
+                s.y2 = parseInt(document.getElementById('edit-y2').value) || 0;
+            }
+            if(s.type=='round') {
+                s.radius = parseInt(document.getElementById('edit-radius').value) || getRadius();
+            }
+            if(s.type=='text') {
+                s.content = document.getElementById('edit-content').value || '';
+            }
+            s.color = document.getElementById('edit-color').value || '#0f0';
+            drawAll();
+            document.body.removeChild(modal);
+        };
+        document.getElementById('edit-delete').onclick = function() {
+            shapes.splice(idx,1);
+            drawAll();
+            document.body.removeChild(modal);
+        };
+        document.getElementById('edit-cancel').onclick = function() {
+            document.body.removeChild(modal);
+        };
+        
+    }
+        function deleteShape(idx) {
+            if(confirm('Delete this shape?')) {
+                shapes.splice(idx,1);
+                drawAll();
+                renderShapeTable();
+            }
+        }
+        // Gọi lại khi shapes thay đổi
+        let oldDrawAll = drawAll;
+        drawAll = function() {
+            oldDrawAll();
+            renderShapeTable();
+        };
+        window.addEventListener('DOMContentLoaded', renderShapeTable);
+        // Sửa lại saveLMD để lưu toàn bộ pages
+    function saveLMD() {
+        saveCurrentShapes();
+        let output = [];
+        for (let p of pages) {
+            let arr1 = p.shapes.map((s, idx) => {
+                if (s.type === 'rect') {
+                    return {type: 1, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
+                }
+                else if (s.type === 'line') {
+                    return {type: 2, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
+                } else if (s.type === 'round') {
+                    return {type: 3, data: [s.x || 0, s.y || 0, s.radius || getRadius()], color: s.color || '#ffffff'};
+                } else if (s.type === 'triangle') {
+                    return {type: 4, data: [s.x || 0, s.y || 0, s.x1 || 0, s.y1 || 0, s.x2 || 0, s.y2 || 0], color: s.color || '#ffffff'};
+                }
+                // Không return gì cho text hoặc shape không hợp lệ
+            }).filter(Boolean); // <-- Thêm dòng này
+
+            let arr2 = [];
+            let textGroup = [];
+            for (let s of p.shapes) {
+                if (s.type === 'text') {
+                    textGroup.push({xy: [s.x, s.y], id: textGroup.length, color: s.color});
+                }
+            }
+            if (textGroup.length) arr2.push(textGroup);
+            output.push([arr1, arr2]);
+        }
+        let jsonStr = JSON.stringify({pages: output});
+        websocket.send(jsonStr);
+        console.log("Saved LMD data:", jsonStr);
+
+        // let input = document.createElement('input');
+        // input.type = 'text';
+        // input.value = jsonStr;
+        // input.style.width = '100%';
+        // input.readOnly = true;
+        // document.body.appendChild(input);
+        }
+
+window.addEventListener('load', onload);
+function onload(event) {
+
+    initWebSocket();
+}
+
+        function initWebSocket() {
+            const ws_IP = "192.168.2.229";
+            // const ws_IP = document.getElementById('ws-ip').value;
+    if (!ws_IP) {
+        console.error("WebSocket IP is not set.");
+        return;
+    }
+    ws_url = `ws://${ws_IP}/ws`;
+    console.log('Trying to open a WebSocket connection…');
+    websocket = new WebSocket(ws_url);
+    websocket.onopen = onOpen;
+    websocket.onclose = onClose;
+}
+
+function reconnectWebSocket() {
+    if (websocket) {
+        websocket.close();
+    }
+    initWebSocket();
+}
+    function onOpen() {
+        // sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
+        alert("Đã kết nối tới WebSocket server thành công!");    
+        console.log("WebSocket opened!");
+    }
+function onClose() {
+    console.log("WebSocket closed!");
+    // Có thể thử reconnect nếu cần
+    setTimeout(initWebSocket, 1000); // Thử reconnect sau 1 giây
+}
+        // Sửa lại loadLMD để đọc toàn bộ pages
+        function loadLMD() {
+            let input = document.querySelector('input[type="text"]');
+            if (!input || !input.value) {
+                alert("No JSON found!");
+                return;
+            }
+            try {
+                let obj = JSON.parse(input.value);
+                let arr = Array.isArray(obj) ? obj : obj.pages;
+                if (!Array.isArray(arr)) throw new Error("Invalid format");
+                pages = [];
+                for(let pageArr of arr) {
+                    let shapesArr = [];
+                    if (Array.isArray(pageArr[0])) {
+                        for (let obj of pageArr[0]) {
+                            if (typeof obj !== 'object' || !obj.type || !Array.isArray(obj.data)) continue;
+                            if (obj.type === 1) {
+                                shapesArr.push({type: 'rect', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
+                            }
+                            else if (obj.type === 2) {
+                                shapesArr.push({type: 'line', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
+                            } else if (obj.type === 3) {
+                                shapesArr.push({type: 'round', x: obj.data[0], y: obj.data[1], radius: obj.data[2], color: obj.color});
+                            } else if (obj.type === 4) {
+                                shapesArr.push({type: 'triangle', x: obj.data[0], y: obj.data[1], x1: obj.data[2], y1: obj.data[3], x2: obj.data[4], y2: obj.data[5], color: obj.color});
+                            }
+                        }
+                    }
+                    // Handle points in arr[1]
+                    if (Array.isArray(pageArr[1])) {
+                        for (let group of pageArr[1]) {
+                            if (Array.isArray(group)) {
+                                for (let point of group) {
+                                    shapesArr.push({type:'text', x:point.xy[0], y:point.xy[1], content:"a", color:point.color||'#ffffff'});
+                                }
+                            }
+                        }
+                    }
+                    pages.push({shapes: shapesArr});
+                }
+                currentPageIdx = 0;
+                shapes = pages[0].shapes;
+                drawAll();
+                renderTabs();
+            } catch (e) {
+                alert("Invalid JSON!");
+            }
+        }
+
+        // Gọi khi khởi tạo
+        renderTabs();
+        loadCurrentShapes();
+        </script>
+        <a href="/">Monitor</a>
+      </body>
+      </html>

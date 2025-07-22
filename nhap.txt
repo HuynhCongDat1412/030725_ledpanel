@@ -19,8 +19,8 @@
     + Thêm 1 nút chọn màu cho cả phần shape và phần text
     + cập nhật thêm phần tin nhắn gửi đi
 
-    [[{"type":1,"data":[12,12,20,20],"color":"#ec1313"}],[[{"xy":[1,1],"id":1,"color":"#2bee41"},{"xy":[20,20],"id":2,"color":"#d5d908"}]]]
-
+    [[{"type":1,"data":[12,12,20,20],"color":"#8a5151ff"}],[[{"xy":[1,1],"id":1,"color":"#2bee41"},{"xy":[20,20],"id":2,"color":"#d5d908"}]]]
+    [[{"type":1,"data":[0,0,64,32],"color":"#8a5151ff"}]]
 
 
 viet 1 ham mapping vao cái textContent
@@ -61,3 +61,78 @@ display.setFont(&FreeSans9pt7b); trong hàm
 - Map data thì trước khi map phải xóa hết data
 
 - Data cũng đưa vào 1 mảng rồi gửi hết 1 lần khi web gửi
+
+[[],[]]
+
+[[{"type":1,"data":[0,0,0,0]}]]
+
+{
+  "pages": 
+  [
+    [
+      [
+        {"type":1,"data":[0,0,32,16],"color":"#e411acff"},
+        {"type":1,"data":[32,0,32,16],"color":"#fbfbfaff"},
+        {"type":1,"data":[0,16,32,16],"color":"#ffffffff"},
+        {"type":1,"data":[32,16,32,16],"color":"#ffffffff"}
+      ],
+      [
+        {},
+        {},
+        {},
+        {}
+      ]
+    ],
+    [
+      [
+        {"type":1,"data":[0,0,64,32],"color":"#65dcec"}
+      ],
+      [
+        {},
+        {},
+        {},
+        {}
+      ]
+    ],
+    [
+      [
+        {"type":1,"data":[0,0,32,32],"color":"#60fbb3"},
+        {"type":1,"data":[32,0,32,32],"color":"#60fbb3"}
+      ],
+      [
+        {},
+        {}
+    ]
+    ]
+  ]
+}
+
+{
+  "pages": 
+  [
+    [
+      [
+        {"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},
+        {"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},
+        {"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},
+        {"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}
+      ],
+      [
+        {"xy":[5,13],"id":2,"color":"#592ae6ff"},
+        {},
+        {},
+        {}
+      ]
+    ]
+
+  ]
+}
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[2,8],"id":0,"color":"#5d47ff"},{"xy":[2,24],"id":1,"color":"#5d47ff"},{"xy":[34,8],"id":2,"color":"#5d47ff"},{"xy":[34,24],"id":3,"color":"#5d47ff"},{"xy":[8,8],"id":4,"color":"#6147ff"}]]],[[],[]]]}
+
+
+                else if (font == 2) { virtualDisp->drawLine(x+1, y, x+1, y+2, color); }
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[44,28],"id":0,"color":"#5d47ff"},{"xy":[12,28],"id":1,"color":"#5d47ff"},{"xy":[44,12],"id":2,"color":"#5d47ff"},{"xy":[12,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}

@@ -134,7 +134,7 @@ function initWebSocket() {
         console.error("WebSocket IP is not set.");
         return;
     }
-    ws_url = `ws://${ws_IP}:81/`;
+    ws_url = `ws://${ws_IP}/ws`;
     console.log('Trying to open a WebSocket connection…');
     websocket = new WebSocket(ws_url);
     websocket.onopen = onOpen;
@@ -150,6 +150,7 @@ function reconnectWebSocket() {
     function onOpen() {
         sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
         alert("Đã kết nối tới WebSocket server thành công!");    
+        console.log("WebSocket opened!");
     }
 function onClose() {
     console.log("WebSocket closed!");
@@ -222,80 +223,47 @@ function renderLedPanel(masterArray) {
 }
 
 function onMessage(event) {
-    console.log('Received message:', event.data);
-    console.log("Text còn lại", allTextMessages);
-
-    // Tách các JSON mảng nối liền nhau
-    let raw = event.data;
-    let jsons = [];
-    let depth = 0, start = 0;
-    for (let i = 0; i < raw.length; i++) {
-        if (raw[i] === '[') {
-            if (depth === 0) start = i;
-            depth++;
+    // try {
+        const data = JSON.parse(event.data);
+        // Nếu nhận đúng format { pages: [...] }
+        if (data.pages && Array.isArray(data.pages)) {
+            // Lọc lại text cho chắc chắn
+            masterArray = [
+                data.pages[0][0],
+                data.pages[0][1].map(arr =>
+                    Array.isArray(arr)
+                        ? arr.filter(obj => obj && obj.xy && obj.xy.length === 2 && obj.id !== undefined)
+                        : []
+                )
+            ];
+            renderAllCards();
+            return;
         }
-        if (raw[i] === ']') {
-            depth--;
-            if (depth === 0) {
-                jsons.push(raw.slice(start, i + 1));
-            }
+        // Nếu nhận là mảng text messages (mapping)
+        if (Array.isArray(data) && data.length > 0 && data[0].data && data[0].info) {
+            allTextMessages = data;
+            renderTextMessages(allTextMessages);
+            renderAllCards();
+            return;
         }
-    }
-    jsons.forEach(str => {
-    try {
-        const data = JSON.parse(str);
-        if (Array.isArray(data)) {
-            // Nếu là text mapping (mảng các object có data & info)
-            if (
-                data.length > 0 &&
-                typeof data[0] === 'object' &&
-                data[0] !== null &&
-                'data' in data[0] &&
-                'info' in data[0]
-            ) 
-                {
-                    console.log("data messages:", data);
-                    allTextMessages = data;
-                    renderTextMessages(allTextMessages);
-                    renderAllCards();
-
-                    return;
-                }
-
-            // Nếu là masterArray (shapes + texts)
-            if (
-                data.length === 2 &&
-                Array.isArray(data[0]) &&
-                Array.isArray(data[1]) &&
-                data[0].length > 0 &&
-                typeof data[0][0] === 'object' &&
-                'type' in data[0][0]
-            ) {
-                // console.log("Shape msg: ",data);
-                masterArray = data;
-                console.log("Lỗi1");
-
-                renderAllCards();
-                // renderLedPanel(masterArray);
-                return;
-            }
-
-            // Nếu chỉ có shapes (data.length === 1), thì thêm mảng rỗng cho texts
-            if (data.length === 1 && Array.isArray(data[0])) {
-                const shapeLength = data[0].length;
-                const textArray = Array.from({ length: shapeLength }, () => []);
-                masterArray = [data[0], textArray];
-                renderAllCards();
-                return;
-            }
-        } else {
-            console.warn("Received object instead of array:", data);
+        // Nếu nhận là mảng shapes + texts (cũ)
+        if (Array.isArray(data) && data.length === 2 && Array.isArray(data[0]) && Array.isArray(data[1])) {
+            masterArray = data;
+            renderAllCards();
+            return;
         }
-    } catch (e) {
-        console.error('Invalid JSON:', str);
-    }
-});
-}
+        // Nếu nhận là mảng shapes (chỉ shapes)
+        if (Array.isArray(data) && data.length === 1 && Array.isArray(data[0])) {
+            masterArray = [data[0], []];
+            renderAllCards();
+            return;
+        }
+        console.warn("Received unknown format:", data);
+    } 
+// catch (e) {
+//         console.error('Invalid JSON:', event.data);
+//     }
+// }
 function renderTextMessages(textArr) {
     textArr.forEach(msg => {
         if (!msg.info || msg.info.length < 2) return;
@@ -559,6 +527,11 @@ function createCardFromData(shapeData, idx) {
     card2Body.appendChild(card);    
 
 }
+function textModalF_close() {
+    const modal = document.getElementById('textModal');
+    modal.style.display = 'none';
+    currentCardIdx = null; // Reset currentCardIdx
+}
 
 function textModal_add() {
     const x = parseFloat(document.getElementById('modal-x').value);
@@ -620,7 +593,7 @@ function sendSocket(dataSend) {
     } else {
         console.log("WebSocket is not open. Message not sent.");
     }
-    console.log("Data sendSocket: ", JSON.stringify(dataSend));
+    // console.log("Data sendSocket: ", JSON.stringify(dataSend));
 }
 
 function handleChangeShapeType() {
@@ -718,6 +691,25 @@ function handleChangeShapeType() {
         `;
     }
     cardBody.appendChild(card);
+}
+function sendSocketPages() {
+    // Lọc bỏ các text object rỗng/null trong masterArray[1]
+    const cleanMasterArray = [
+        masterArray[0],
+        masterArray[1].map(arr =>
+            Array.isArray(arr)
+                ? arr.filter(obj => obj && obj.xy && obj.xy.length === 2 && obj.id !== undefined)
+                : []
+        )
+    ];
+    const dataSend = { pages: [cleanMasterArray] };
+    if (websocket.readyState === WebSocket.OPEN) {
+        websocket.send(JSON.stringify(dataSend));
+        console.log("Data sendSocketPages: ", JSON.stringify(dataSend));
+    } else {
+        console.log("WebSocket is not open. Message not sent.");
+    }
+    console.log("Data sendSocket: ", JSON.stringify(dataSend));
 }
     </script>
 </body>
