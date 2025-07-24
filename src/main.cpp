@@ -185,9 +185,9 @@ MatrixPanel_I2S_DMA *dma_display = nullptr;
 VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>* virtualDisp = nullptr;
 
 // ==== Màu sắc mẫu ====
-uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE;
+uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE, myYELLOW, myORANGE;
 
-
+uint16_t connectionStatusColor[4];// = {myRED, myYELLOW, myORANGE, myGREEN};
 
 
 AsyncWebServer server(80);
@@ -730,8 +730,17 @@ void setup_ledPanel(){
             if (virtualDisp != nullptr) {
                 virtualDisp->setDisplay(*dma_display);
 
-                myBLACK = virtualDisp->color565(0, 0, 0);
-                myWHITE = virtualDisp->color565(255, 255, 255);
+                myBLACK  = virtualDisp->color565(0, 0, 0);
+                myWHITE  = virtualDisp->color565(255, 255, 255);
+                myRED    = virtualDisp->color565(255, 0, 0);
+                myYELLOW = virtualDisp->color565(255, 255, 0);
+                myORANGE = virtualDisp->color565(255, 128, 0);
+                myGREEN  = virtualDisp->color565(0, 255, 0);
+                myBLUE   = virtualDisp->color565(0, 0, 255);
+                connectionStatusColor[0] = myRED;
+                connectionStatusColor[1] = myORANGE;
+                connectionStatusColor[2] = myYELLOW;
+                connectionStatusColor[3] = myGREEN;
 
                 virtualDisp->fillScreen(myBLACK);
                 initialized = true;
@@ -974,7 +983,7 @@ void showCurrentPage(int currentPage) {
                 conStatus2 = connectionStatus[1].as<int>();
                 conStatus3 = connectionStatus[2].as<int>();
                 conStatus4 = connectionStatus[3].as<int>();
-                Serial.printf("Connection Status: %d, %d, %d, %d\n", conStatus1, conStatus2, conStatus3, conStatus4);
+                
                 }
 
             if(currentPage == 0){
@@ -1125,10 +1134,10 @@ void showCurrentPage(int currentPage) {
         GenNumber(4, 32, 17, 2,  virtualDisp->color565(93, 71, 255));
 
 
-        virtualDisp->drawLine(2, 7, 2, 7+conStatus1-1, virtualDisp->color565(128, 0, 255));
-        virtualDisp->drawLine(34, 7, 34, 7+conStatus2-1, virtualDisp->color565(255, 255, 0));
-        virtualDisp->drawLine(2, 24, 2, 24+conStatus3-1, virtualDisp->color565(0, 255, 0));
-        virtualDisp->drawLine(34, 24, 34, 24+conStatus4-1, virtualDisp->color565(0, 128, 255));
+        virtualDisp->drawLine(2, 7, 2, 7+conStatus1-1, connectionStatusColor[conStatus1-1]);
+        virtualDisp->drawLine(34, 7, 34, 7+conStatus2-1, connectionStatusColor[conStatus2-1]);
+        virtualDisp->drawLine(2, 24, 2, 24+conStatus3-1,connectionStatusColor[conStatus3-1]);
+        virtualDisp->drawLine(34, 24, 34, 24+conStatus4-1, connectionStatusColor[conStatus4-1]);
 
 
         // else {
