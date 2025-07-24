@@ -15,9 +15,16 @@
       <body>
         <h2>LMD Shape & Text Editor</h2>
         <div class="card">
-        <label>Rows: <input id="rows" type="number" min="1" max="8" value="10"></label>
-        <label>Cols: <input id="cols" type="number" min="1" max="8" value="10"></label>
+        <h3>Window Status</h3>
+        <!-- <label>Rows: <input id="rows" type="number" min="1" max="30" value="15"></label>
+        <label>Cols: <input id="cols" type="number" min="1" max="30" value="15"></label> 
         <button class="btn" onclick="resizeCanvas()">Apply</button>
+        -->
+        <label>
+            Panel Size: <input id="panelSize" type="range" min="1" max="15" value="15" onchange="resizeCanvas()">
+        </label>
+
+        <label>Brightness: <input id="brightness" type="range" min="0" max="100" value="40" style="width:180px;"></label>
         </div>
         <div class="card">
         <button class="btn" onclick="addShape('line')">Add Line</button>
@@ -50,6 +57,45 @@
         <button class="btn" onclick="saveLMD()">Save</button>
         <button class="btn" onclick="loadLMD()">Load</button>
         <input type="text" style="width:100%;margin-top:8px;" placeholder="Paste JSON here to load...">
+        </div>
+        <div class="card">
+            <label>Connection ID: 1</label>
+            <input style="width: 150px;" id="status1" type="number"  max="4" min="0" step="1" id="connectionStatus_1" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(1, document.getElementById('connectionStatus_1').value)"> -->
+            <br>
+            <label>Connection ID: 2</label>
+            <input style="width: 150px;" id="status2" type="number"  max="4" min="0" step="1" id="connectionStatus_2" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(2, document.getElementById('connectionStatus_2').value)"> -->
+            <br>
+            <label>Connection ID: 3</label>
+            <input style="width: 150px;" id="status3" type="number"  max="4" min="0" step="1" id="connectionStatus_3" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(3, document.getElementById('connectionStatus_3').value)"> -->
+            <br>
+            <label>Connection ID: 4</label>
+            <input style="width: 150px;" id="status4" type="number"  max="4" min="0" step="1" id="connectionStatus_4" value="4"> 
+            <br>
+        </div>
+        <div class="card">
+            <Label>Font for 1 digit</Label>
+            <select class="font-select" id="font1digit">
+                
+            </select>
+            <br>
+            <Label>Font for 2 digits</Label>
+            <select class="font-select" id="font2digits">
+                
+            </select>
+            <br>
+            <Label>Font for 3 digits</Label>
+            <select class="font-select" id="font3digits">
+                
+            </select>
+            <br>
+            <Label>Font for 4 digits</Label>
+            <select class="font-select" id="font4digits">
+                
+            </select>
+            <input type="button" value="Set Fonts" onclick="saveLMD()">
         </div>
         <div class="card" id="multiCardWrap" style="display:flex;gap:16px;flex-wrap:wrap;">
             <!-- Card 1 -->
@@ -96,6 +142,55 @@
             <input id="cmnd-update-output" type="text" style="width:100%;" readonly>
         </div>
         <script>
+        const colorOptionsHTML = `
+            <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
+            <option value="#00ff00" style="background:#00ff00;color:#000;">Green</option>
+            <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
+            <option value="#ffff00" style="background:#ffff00;color:#000;">Yellow</option>
+            <option value="#00ffff" style="background:#00ffff;color:#000;">Cyan</option>
+            <option value="#ff00ff" style="background:#ff00ff;color:#fff;">Magenta</option>
+            <option value="#ffffff" style="background:#ffffff;color:#000;">White</option>
+            <option value="#ff7676ff" style="background:#ff7676ff;color:#000;">Light Red</option>
+            <option value="#6ff66fff" style="background:#6ff66fff;color:#000;">Light Green</option>
+            <option value="#6565f4ff" style="background:#6565f4ff;color:#fff;">Light Blue</option>
+            <option value="#f4f46cff" style="background:#f4f46cff;color:#000;">Light Yellow</option>
+            <option value="#6ff7f7ff" style="background:#6ff7f7ff;color:#000;">Light Cyan</option>
+            <option value="#f778f7ff" style="background:#f778f7ff;color:#000;">Light Magenta</option>
+            <option value="#ff8000ff" style="background:#ff8000ff;color:#000;">Orange</option>
+            <option value="#efa255ff" style="background:#efa255ff;color:#000;">Light Orange</option>
+            <option value="#e896ffff" style="background:#8c559bff;color:#fff;">Purple</option>
+            <option value="#c3c3c3ff" style="background:#c3c3c3ff;color:#000;">Gray</option>
+            <option value="#6ce7ffff" style="background:#6ce7ffff;color:#000;">Teal</option>
+            <option value="#bb6e6eff" style="background:#bb6e6eff;color:#fff;">Brown</option>
+        `;
+            
+
+        const fontOptionsHTML = `
+            <option value="">Default</option>
+            <option value="FreeMono9pt7b">FreeMono9pt7b</option>
+            <option value="FreeMonoBold9pt7b">FreeMonoBold9pt7b</option>
+            <option value="FreeMonoOblique9pt7b">FreeMonoOblique9pt7b</option>
+            <option value="FreeMonoBoldOblique9pt7b">FreeMonoBoldOblique9pt7b</option>
+            <option value="FreeSans9pt7b">FreeSans9pt7b</option>
+            <option value="FreeSansBold9pt7b">FreeSansBold9pt7b</option>
+            <option value="FreeSansOblique9pt7b">FreeSansOblique9pt7b</option>
+            <option value="FreeSansBoldOblique9pt7b">FreeSansBoldOblique9pt7b</option>
+            <option value="FreeSerif9pt7b">FreeSerif9pt7b</option>
+            <option value="FreeSerifBold9pt7b">FreeSerifBold9pt7b</option>
+            <option value="FreeSerifItalic9pt7b">FreeSerifItalic9pt7b</option>
+            <option value="FreeSerifBoldItalic9pt7b">FreeSerifBoldItalic9pt7b</option>
+            <option value="FreeSerifBoldOblique9pt7b">FreeSerifBoldOblique9pt7b</option>
+            <option value="FreeSerifOblique9pt7b">FreeSerifOblique9pt7b</option>
+            <option value="04B_5px">04B_5px</option>
+            <option value="B_5px">B_5px</option>
+            <option value="hud5pt7b">hud5pt7b</option>
+            <option value="mythic_5pixels">mythic_5pixels</option>
+            <option value="Org_01">Org_01</option>
+            <option value="Picopixel">Picopixel</option>
+            <option value="Tiny3x3a2pt7b">Tiny3x3a2pt7b</option>
+            <option value="TomThumb">TomThumb</option>
+        `;            
+            
         function genCardJson(cardId) {
             const plan = document.getElementById('card' + cardId + '-plan').value;
             const result = document.getElementById('card' + cardId + '-result').value;
@@ -284,8 +379,10 @@
     }
 });
 function resizeCanvas() {
-    rows = parseInt(document.getElementById('rows').value);
-    cols = parseInt(document.getElementById('cols').value);
+    // rows = parseInt(document.getElementById('rows').value);
+    // cols = parseInt(document.getElementById('cols').value);
+    rows = parseInt(document.getElementById('panelSize').value);
+    cols = rows;
     // Keep canvas resolution fixed at 64x32
     canvas.width = moduleW;
     canvas.height = moduleH;
@@ -320,28 +417,13 @@ function resizeCanvas() {
                     <label>Radius: <input id="modal-radius" type="number" value="5"></label>
                     <label>Color:
                         <select id="modal-color">
-                            <option value="#000000" style="background:#000000;color:#fff;">Black</option>
-                            <option value="#ffffff" style="background:#ffffff;color:#000;">White</option>
-                            <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
-                            <option value="#00ff00" style="background:#00ff00;color:#000;">Lime</option>
-                            <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
-                            <option value="#ffff00" style="background:#ffff00;color:#000;">Yellow</option>
-                            <option value="#00ffff" style="background:#00ffff;color:#000;">Cyan</option>
-                            <option value="#ff00ff" style="background:#ff00ff;color:#fff;">Magenta</option>
-                            <option value="#808080" style="background:#808080;color:#fff;">Gray</option>
-                            <option value="#800000" style="background:#800000;color:#fff;">Maroon</option>
-                            <option value="#808000" style="background:#808000;color:#fff;">Olive</option>
-                            <option value="#008000" style="background:#008000;color:#fff;">Green</option>
-                            <option value="#800080" style="background:#800080;color:#fff;">Purple</option>
-                            <option value="#008080" style="background:#008080;color:#fff;">Teal</option>
-                            <option value="#c0c0c0" style="background:#c0c0c0;color:#000;">Silver</option>
-                            <option value="#ffa500" style="background:#ffa500;color:#000;">Orange</option>
+                            ${colorOptionsHTML}
                         </select>
                     </label>
                     <div style="margin-top:12px;text-align:right;">
                         <button id="modal-ok">OK</button>
                         <button id="modal-cancel">Cancel</button>
-                    </div>
+                    </div>  
                 </div>
             `;
             document.body.appendChild(modal);
@@ -393,26 +475,11 @@ function resizeCanvas() {
                 <label>Text: <input id="modal-content" type="text" value="Hello"></label>
                 <label>X: <input id="modal-x" type="number" value="10"></label>
                 <label>Y: <input id="modal-y" type="number" value="20"></label>
-                <label>Color:
-                <select id="modal-color">
-                    <option value="#000000" style="background:#000000;color:#fff;">Black</option>
-                    <option value="#ffffff" style="background:#ffffff;color:#000;">White</option>
-                    <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
-                    <option value="#00ff00" style="background:#00ff00;color:#000;">Lime</option>
-                    <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
-                    <option value="#ffff00" style="background:#ffff00;color:#000;">Yellow</option>
-                    <option value="#00ffff" style="background:#00ffff;color:#000;">Cyan</option>
-                    <option value="#ff00ff" style="background:#ff00ff;color:#fff;">Magenta</option>
-                    <option value="#808080" style="background:#808080;color:#fff;">Gray</option>
-                    <option value="#800000" style="background:#800000;color:#fff;">Maroon</option>
-                    <option value="#808000" style="background:#808000;color:#fff;">Olive</option>
-                    <option value="#008000" style="background:#008000;color:#fff;">Green</option>
-                    <option value="#800080" style="background:#800080;color:#fff;">Purple</option>
-                    <option value="#008080" style="background:#008080;color:#fff;">Teal</option>
-                    <option value="#c0c0c0" style="background:#c0c0c0;color:#000;">Silver</option>
-                    <option value="#ffa500" style="background:#ffa500;color:#000;">Orange</option>
-                </select>
-                </label>
+                <label>Color:<select id="modal-color">${colorOptionsHTML}</select></label>
+                <label>Font:
+                    <select id="modal-font">
+                        ${fontOptionsHTML}
+                    </select>
                 <div style="margin-top:12px;text-align:right;">
                     <button id="modal-ok">OK</button>
                     <button id="modal-cancel">Cancel</button>
@@ -469,7 +536,6 @@ function resizeCanvas() {
       }
         }
 
-        resizeCanvas();
         
 
         // Khởi tạo 1 page mặc định nếu chưa có
@@ -531,10 +597,10 @@ function resizeCanvas() {
         function loadCurrentShapes() {
         let p = pages[currentPageIdx];
         shapes = JSON.parse(JSON.stringify(p.shapes||[]));
-        rows = p.rows||1;
-        cols = p.cols||1;
-        document.getElementById('rows').value = rows;
-        document.getElementById('cols').value = cols;
+        // rows = p.rows||15;
+        // cols = p.cols||15;
+        // document.getElementById('rows').value = rows;
+        // document.getElementById('cols').value = cols;
         resizeCanvas();
         drawAll();
         }
@@ -597,9 +663,16 @@ function renderShapeTable() {
         if(s.type=='text') {
             html += `<label>Text: <input id="edit-content" type="text" value="${s.content||''}"></label>
             <label>X: <input id="edit-x" type="number" value="${s.x||0}"></label>
-            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>`;
+            <label>Y: <input id="edit-y" type="number" value="${s.y||0}"></label>
+            <label>Font:<select id="edit-font">${fontOptionsHTML}</select>
+            </label>
+            `;
         }
-        html += `<label>Color: <input id="edit-color" type="color" value="${s.color||'#0f0'}"></label>
+        html += `<label>Color:
+        <select id="edit-color">${colorOptionsHTML}</select>
+        </label>`;
+        html += 
+        `
             <div style="margin-top:12px;text-align:right;">
                 <button id="edit-ok">OK</button>
                 <button id="edit-delete">Delete</button>
@@ -661,6 +734,11 @@ function renderShapeTable() {
             renderShapeTable();
         };
         window.addEventListener('DOMContentLoaded', renderShapeTable);
+        window.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('select.font-select').forEach(function(sel) {
+                sel.innerHTML = fontOptionsHTML;
+            });
+        });
         // Sửa lại saveLMD để lưu toàn bộ pages
     function saveLMD() {
         saveCurrentShapes();
@@ -671,11 +749,11 @@ function renderShapeTable() {
                     return {type: 1, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
                 }
                 else if (s.type === 'line') {
-                    return {type: 2, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
+                    return {type: 0, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
                 } else if (s.type === 'round') {
-                    return {type: 3, data: [s.x || 0, s.y || 0, s.radius || getRadius()], color: s.color || '#ffffff'};
+                    return {type: 2, data: [s.x || 0, s.y || 0, s.radius || getRadius()], color: s.color || '#ffffff'};
                 } else if (s.type === 'triangle') {
-                    return {type: 4, data: [s.x || 0, s.y || 0, s.x1 || 0, s.y1 || 0, s.x2 || 0, s.y2 || 0], color: s.color || '#ffffff'};
+                    return {type: 3, data: [s.x || 0, s.y || 0, s.x1 || 0, s.y1 || 0, s.x2 || 0, s.y2 || 0], color: s.color || '#ffffff'};
                 }
                 // Không return gì cho text hoặc shape không hợp lệ
             }).filter(Boolean); // <-- Thêm dòng này
@@ -690,8 +768,27 @@ function renderShapeTable() {
             if (textGroup.length) arr2.push(textGroup);
             output.push([arr1, arr2]);
         }
+        const font1 = document.getElementById('font1digit').selectedIndex;
+        const font2 = document.getElementById('font2digits').selectedIndex;
+        const font3 = document.getElementById('font3digits').selectedIndex;
+        const font4 = document.getElementById('font4digits').selectedIndex;
+        const brightness = parseInt(document.getElementById('brightness').value)||0;
+        let brightnessSend = Math.round(brightness*255/100);
+        console.log("Brightness:", brightness, "Send:", brightnessSend);
+        if (brightnessSend == 0) brightnessSend = 1;
+
+        
+            output[0][2] = [font1, font2, font3, font4,brightnessSend];
+            
+    
+        let status1= parseInt(document.getElementById('status1').value);
+        let status2= parseInt(document.getElementById('status2').value);
+        let status3= parseInt(document.getElementById('status3').value);
+        let status4= parseInt(document.getElementById('status4').value);
+        output[0][3] = [status1, status2, status3, status4];
         let jsonStr = JSON.stringify({pages: output});
         websocket.send(jsonStr);
+
         console.log("Saved LMD data:", jsonStr);
 
         // let input = document.createElement('input');
@@ -720,6 +817,16 @@ function onload(event) {
     websocket = new WebSocket(ws_url);
     websocket.onopen = onOpen;
     websocket.onclose = onClose;
+    websocket.onmessage = onMessage;
+}
+
+function onMessage(event){
+    let msg = JSON.parse(event.data);
+    if (msg.pages) {
+        loadLMDFromObj(msg);
+    }
+    let input = document.querySelector('input[type="text"]');
+    input.value = JSON.stringify(msg, null, 2);
 }
 
 function reconnectWebSocket() {
@@ -729,15 +836,56 @@ function reconnectWebSocket() {
     initWebSocket();
 }
     function onOpen() {
-        // sendSocket(allTextMessages.filter(msg => typeof msg === "object" && !Array.isArray(msg)));
-        alert("Đã kết nối tới WebSocket server thành công!");    
         console.log("WebSocket opened!");
     }
 function onClose() {
     console.log("WebSocket closed!");
-    // Có thể thử reconnect nếu cần
-    setTimeout(initWebSocket, 1000); // Thử reconnect sau 1 giây
+    setTimeout(initWebSocket, 1000);
 }
+
+function loadLMDFromObj(obj) {
+    let arr = Array.isArray(obj) ? obj : obj.pages;
+    if (!Array.isArray(arr)) {
+        alert("Invalid format");
+        return;
+    }
+    pages = [];
+    for(let pageArr of arr) {
+        let shapesArr = [];
+        if (Array.isArray(pageArr[0])) {
+            for (let obj of pageArr[0]) {
+                if (typeof obj !== 'object' || !obj.type || !Array.isArray(obj.data)) continue;
+                if (obj.type === 1) {
+                    shapesArr.push({type: 'rect', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
+                }
+                else if (obj.type === 2) {
+                    shapesArr.push({type: 'line', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
+                } else if (obj.type === 3) {
+                    shapesArr.push({type: 'round', x: obj.data[0], y: obj.data[1], radius: obj.data[2], color: obj.color});
+                } else if (obj.type === 4) {
+                    shapesArr.push({type: 'triangle', x: obj.data[0], y: obj.data[1], x1: obj.data[2], y1: obj.data[3], x2: obj.data[4], y2: obj.data[5], color: obj.color});
+                }
+            }
+        }
+        // Handle points in arr[1]
+        if (Array.isArray(pageArr[1])) {
+            for (let group of pageArr[1]) {
+                if (Array.isArray(group)) {
+                    for (let point of group) {
+                        shapesArr.push({type:'text', x:point.xy[0], y:point.xy[1], content:"a", color:point.color||'#ffffff'});
+                    }
+                }
+            }
+        }
+        pages.push({shapes: shapesArr});
+    }
+    currentPageIdx = 0;
+    shapes = pages[0].shapes;
+    drawAll();
+    renderTabs();
+}
+
+
         // Sửa lại loadLMD để đọc toàn bộ pages
         function loadLMD() {
             let input = document.querySelector('input[type="text"]');
@@ -791,6 +939,91 @@ function onClose() {
         // Gọi khi khởi tạo
         renderTabs();
         loadCurrentShapes();
+
+        function updateStatus(connectionID, statusInfo) {
+            let input = document.querySelector('input[type="text"]');
+            let obj = input ? JSON.parse(input.value) : {};
+            let firstId_x;
+            let firstId_y;
+            if (connectionID === 1) {
+                firstId_x = 2;
+                firstId_y = 7;               
+            }
+            else if (connectionID === 2) {
+                firstId_x = 34;
+                firstId_y = 7;               
+            }
+            else if (connectionID === 3) {
+                firstId_x = 2;
+                firstId_y = 24;               
+            }
+            else if (connectionID === 4) {
+                firstId_x = 34;
+                firstId_y = 24;               
+            }
+            for (let pageIdx = 0; pageIdx < 1; pageIdx++) {
+                // Xử lý shapes của từng page
+                obj.pages[pageIdx][0] = obj.pages[pageIdx][0].filter(item =>
+                    !(item.type === 1 &&
+                    Array.isArray(item.data) &&
+                    item.data[0] === firstId_x &&
+                    item.data[1] >= firstId_y &&
+                    item.data[1] < firstId_y + 4)
+                );
+                for (let i = 0; i < statusInfo; i++) {
+                    obj.pages[pageIdx][0].push({"type": 1, "data": [firstId_x, firstId_y+i, 1, 1], "color": "#00ff00"});
+                }
+            }
+            
+            // let statusInfo=2;
+                
+            input.value = JSON.stringify(obj);
+            loadLMDFromObj(obj);
+        }
+
+        function updateAllStatus(){
+            let status1= document.getElementById('status1').value;
+            let status2= document.getElementById('status2').value;
+            let status3= document.getElementById('status3').value;
+            let status4= document.getElementById('status4').value;
+            let statusInfo = [status1, status2, status3, status4].map(Number);
+            
+            for (let i = 0; i <= 3; i++) {
+                updateStatus(i+1, statusInfo[i]);
+            }
+        }
+        
+        function setFonts() {
+            // Lấy index của font đã chọn (bắt đầu từ 0)
+            const font1 = document.getElementById('font1digit').selectedIndex;
+            const font2 = document.getElementById('font2digits').selectedIndex;
+            const font3 = document.getElementById('font3digits').selectedIndex;
+            const font4 = document.getElementById('font4digits').selectedIndex;
+
+            // Lấy dữ liệu hiện tại từ input (giả sử input đầu tiên là JSON)
+            let input = document.querySelector('input[type="text"]');
+            let obj = {};
+            try {
+                obj = JSON.parse(input.value);
+            } catch (e) {
+                alert("Không tìm thấy hoặc không hợp lệ JSON!");
+                return;
+            }
+
+            // Gán mảng font vào vị trí [2] của mỗi page (theo format mẫu)
+            if (obj.pages && Array.isArray(obj.pages)) {
+                if (obj.pages[0] && Array.isArray(obj.pages[0])) {
+                    obj.pages[0][2] = [font1, font2, font3, font4];
+                }
+            }
+            console.log(obj);
+            // Gửi toàn bộ object qua websocket
+            if (typeof websocket !== "undefined" && websocket.readyState === 1) {
+                // websocket.send(JSON.stringify(obj));
+            } else {
+                alert("WebSocket not connected!");
+            }
+        }
         </script>
         <a href="/">Monitor</a>
       </body>

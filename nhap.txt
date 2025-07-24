@@ -128,7 +128,7 @@ display.setFont(&FreeSans9pt7b); trong hàm
   ]
 }
 
-{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[2,8],"id":0,"color":"#5d47ff"},{"xy":[2,24],"id":1,"color":"#5d47ff"},{"xy":[34,8],"id":2,"color":"#5d47ff"},{"xy":[34,24],"id":3,"color":"#5d47ff"},{"xy":[8,8],"id":4,"color":"#6147ff"}]]],[[],[]]]}
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"rgba(209, 209, 209, 1)"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[2,8],"id":0,"color":"#5d47ff"},{"xy":[2,24],"id":1,"color":"#5d47ff"},{"xy":[34,8],"id":2,"color":"#5d47ff"},{"xy":[34,24],"id":3,"color":"#5d47ff"},{"xy":[8,8],"id":4,"color":"#6147ff"}]]],[[],[]]]}
 
 
                 else if (font == 2) { virtualDisp->drawLine(x+1, y, x+1, y+2, color); }
@@ -136,3 +136,208 @@ display.setFont(&FreeSans9pt7b); trong hàm
 {"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[44,28],"id":0,"color":"#5d47ff"},{"xy":[12,28],"id":1,"color":"#5d47ff"},{"xy":[44,12],"id":2,"color":"#5d47ff"},{"xy":[12,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}
 
 {"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[2,7,2,2],"color":"#ff0000"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}
+
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,7,1,1],"color":"#ff0000"},{"type":1,"data":[0,8,1,1],"color":"#ff0000"},{"type":1,"data":[0,9,1,1],"color":"#ff0000"},{"type":1,"data":[0,10,1,1],"color":"#ff0000"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]]],[[],[]]]}
+
+#ff0000
+#00ff00
+#0000ff
+#ffff00
+#00ffff
+#ff00ff
+#ffffff
+#ff7676ff
+#6ff66fff
+#6565f4ff
+#f4f46cff
+#6ff7f7ff
+#f778f7ff
+#ff8000ff
+#efa255ff
+#8c559bff
+#a2a2a2ff
+#3e8f9fff
+#944f4fff
+
+
+
+
+
+
+0xFF0000
+
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[2,7,1,1],"color":"#00ff00"},{"type":1,"data":[2,8,1,1],"color":"#00ff00"},{"type":1,"data":[2,9,1,1],"color":"#00ff00"},{"type":1,"data":[2,10,1,1],"color":"#00ff00"},{"type":1,"data":[34,7,1,1],"color":"#00ff00"},{"type":1,"data":[34,8,1,1],"color":"#00ff00"},{"type":1,"data":[34,9,1,1],"color":"#00ff00"},{"type":1,"data":[34,10,1,1],"color":"#00ff00"},{"type":1,"data":[34,24,1,1],"color":"#00ff00"},{"type":1,"data":[34,25,1,1],"color":"#00ff00"},{"type":1,"data":[34,26,1,1],"color":"#00ff00"},{"type":1,"data":[34,27,1,1],"color":"#00ff00"},{"type":1,"data":[2,24,1,1],"color":"#00ff00"},{"type":1,"data":[2,25,1,1],"color":"#00ff00"},{"type":1,"data":[2,26,1,1],"color":"#00ff00"},{"type":1,"data":[2,27,1,1],"color":"#00ff00"}],[[{"xy":[48,28],"id":0,"color":"#6565f4ff"},{"xy":[16,28],"id":1,"color":"#6565f4ff"},{"xy":[48,12],"id":2,"color":"#6565f4ff"},{"xy":[16,12],"id":3,"color":"#6565f4ff"}]]],[[],[]]]}
+
+
+1 biến ảnh hưởng 4 chấm cho mỗi HÌNH
+
+{
+  "pages": 
+  [
+    [
+      [
+        {"type": 1, "data": [0, 0, 32, 16], "color": "#d1d1d1ff"},
+        {"type": 1, "data": [32, 0, 32, 16], "color": "#d1d1d1ff"},
+        {"type": 1, "data": [0, 16, 32, 16], "color": "#d1d1d1ff"},
+        {"type": 1, "data": [32, 16, 32, 16], "color": "#d1d1d1ff"},
+        {"type": 1, "data": [2, 7, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 9, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 8, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 10, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 24, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 25, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 26, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [2, 27, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 7, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 8, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 9, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 10, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 24, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 25, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 26, 1, 1], "color": "#ff0000"},
+        {"type": 1, "data": [34, 27, 1, 1], "color": "#ff0000"}
+      ],
+      [
+        {"xy": [48, 28], "id": 0, "color": "#f4f46cff"},
+        {"xy": [16, 28], "id": 1, "color": "#6ff66fff"},
+        {"xy": [48, 12], "id": 2, "color": "#ff00ff"},
+        {"xy": [16, 12], "id": 3, "color": "#3e8f9fff"}
+      ],
+      [1,2,3,4]
+    ],
+    [
+      [],
+      []
+    ]
+  ]
+}
+#c3c3c3ff
+
+#ff8000ff
+
+{
+  {
+    "cmd":"setFonts"
+    "value":[""]
+  }
+ }
+
+
+{"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[2,7,1,1],"color":"#00ff00"},{"type":1,"data":[34,7,1,1],"color":"#00ff00"},{"type":1,"data":[34,8,1,1],"color":"#00ff00"},{"type":1,"data":[34,9,1,1],"color":"#00ff00"},{"type":1,"data":[34,10,1,1],"color":"#00ff00"},{"type":1,"data":[2,24,1,1],"color":"#00ff00"},{"type":1,"data":[2,25,1,1],"color":"#00ff00"},{"type":1,"data":[2,26,1,1],"color":"#00ff00"},{"type":1,"data":[2,27,1,1],"color":"#00ff00"},{"type":1,"data":[34,24,1,1],"color":"#00ff00"},{"type":1,"data":[34,25,1,1],"color":"#00ff00"},{"type":1,"data":[34,26,1,1],"color":"#00ff00"},{"type":1,"data":[34,27,1,1],"color":"#00ff00"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]],[0,0,0,0]],[[{"type":1,"data":[0,0,32,16],"color":"#ff0000"},{"type":1,"data":[32,0,32,16],"color":"#ff0000"},{"type":1,"data":[0,16,32,16],"color":"#ff0000"},{"type":1,"data":[32,16,32,16],"color":"#ff0000"},{"type":1,"data":[10,10,40,10],"color":"#ff0000"}],[]]]}
+
+{
+  "pages": 
+  [
+    [
+      [
+        // Trang 1 - Lớp nền và các điểm xanh
+        { "type": 1, "data": [0, 0, 32, 16], "color": "#d1d1d1ff" },
+        { "type": 1, "data": [32, 0, 32, 16], "color": "#d1d1d1ff" },
+        { "type": 1, "data": [0, 16, 32, 16], "color": "#d1d1d1ff" },
+        { "type": 1, "data": [32, 16, 32, 16], "color": "#d1d1d1ff" },
+
+        // Các điểm màu xanh (green markers)
+        { "type": 1, "data": [2, 7, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 7, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 8, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 9, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 10, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [2, 24, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [2, 25, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [2, 26, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [2, 27, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 24, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 25, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 26, 1, 1], "color": "#00ff00" },
+        { "type": 1, "data": [34, 27, 1, 1], "color": "#00ff00" }
+      ],
+      [
+        // Các điểm có ID - có thể là waypoint hoặc object
+        { "xy": [48, 28], "id": 0, "color": "#5d47ff" },
+        { "xy": [16, 28], "id": 1, "color": "#5d47ff" },
+        { "xy": [48, 12], "id": 2, "color": "#5d47ff" },
+        { "xy": [16, 12], "id": 3, "color": "#6147ff" }
+      ],
+      [0, 0, 0, 0]  // Có thể là thông tin metadata hoặc placeholder
+    ],
+    [
+      [
+        // Trang 2 - Hình chữ nhật đỏ và thanh chắn ngang
+        { "type": 1, "data": [0, 0, 32, 16], "color": "#ff0000" },
+        { "type": 1, "data": [32, 0, 32, 16], "color": "#ff0000" },
+        { "type": 1, "data": [0, 16, 32, 16], "color": "#ff0000" },
+        { "type": 1, "data": [32, 16, 32, 16], "color": "#ff0000" },
+        { "type": 1, "data": [10, 10, 40, 10], "color": "#ff0000" }
+      ],
+      []
+    ]
+  ]
+}
+
+function updateAllStatus() {
+    
+    let status1 = document.getElementById('status1').value;
+    let status2 = document.getElementById('status2').value;
+    let status3 = document.getElementById('status3').value;
+    let status4 = document.getElementById('status4').value;
+    let statusInfo = [status1, status2, status3, status4].map(Number);
+    console.log("Status info:", statusInfo);
+    for (let i = 0; i < 4; i++) {
+        updateStatus(i + 1, statusInfo[i], currentPageIdx);
+    }
+    console.log("Current page index:", currentPageIdx);
+
+
+  {
+    "pages": 
+    [
+      [
+        [ 
+          { "type": 1, "data": [0, 0, 32, 16], "color": "#d1d1d1ff" },
+          { "type": 1, "data": [32, 0, 32, 16], "color": "#d1d1d1ff" },
+          { "type": 1, "data": [0, 16, 32, 16], "color": "#d1d1d1ff" },
+          { "type": 1, "data": [32, 16, 32, 16], "color": "#d1d1d1ff" },
+
+          // Các điểm màu xanh lá
+          { "type": 1, "data": [2, 7, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 7, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 8, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 9, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 10, 1, 1], "color": "#00ff00" },
+
+          { "type": 1, "data": [2, 24, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [2, 25, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [2, 26, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [2, 27, 1, 1], "color": "#00ff00" },
+
+          { "type": 1, "data": [34, 24, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 25, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 26, 1, 1], "color": "#00ff00" },
+          { "type": 1, "data": [34, 27, 1, 1], "color": "#00ff00" }
+        ],
+        [
+          { "xy": [48, 28], "id": 0, "color": "#5d47ff" },
+          { "xy": [16, 28], "id": 1, "color": "#5d47ff" },
+          { "xy": [48, 12], "id": 2, "color": "#5d47ff" },
+          { "xy": [16, 12], "id": 3, "color": "#6147ff" }
+        ],
+        [0, 0, 0, 0]
+      ],
+      [
+        [
+          { "type": 1, "data": [0, 0, 32, 16], "color": "#ff0000" },
+          { "type": 1, "data": [32, 0, 32, 16], "color": "#ff0000" },
+          { "type": 1, "data": [0, 16, 32, 16], "color": "#ff0000" },
+          { "type": 1, "data": [32, 16, 32, 16], "color": "#ff0000" }
+        ],
+        []
+      ]
+    ]
+  }
+
+  {"pages":[[[{"type":1,"data":[0,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,0,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[0,16,32,16],"color":"#d1d1d1ff"},{"type":1,"data":[32,16,32,16],"color":"#d1d1d1ff"}],[[{"xy":[48,28],"id":0,"color":"#5d47ff"},{"xy":[16,28],"id":1,"color":"#5d47ff"},{"xy":[48,12],"id":2,"color":"#5d47ff"},{"xy":[16,12],"id":3,"color":"#6147ff"}]],[6,17,18,0,99]],[[],[]]]}
+  

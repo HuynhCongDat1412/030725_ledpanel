@@ -1,1 +1,2 @@
 nhúng web thành công
+- HÌNH EDIT NHỎ LẠI KHÔNG RENDER

@@ -62,18 +62,34 @@ void loop(){
 #include <WiFi.h>
 // #include <WebServer.h>
 // #include <WebSocketsServer.h>
-#include <Fonts/FreeSans9pt7b.h>
 #include <Fonts/FreeMono9pt7b.h>
-#include <Fonts/Picopixel.h>
-#include <Fonts/TomThumb.h>
+#include <Fonts/FreeMonoBold9pt7b.h>
+#include <Fonts/FreeMonoOblique9pt7b.h>
+#include <Fonts/FreeMonoBoldOblique9pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
+#include <Fonts/FreeSansBold9pt7b.h>
+#include <Fonts/FreeSansOblique9pt7b.h>
+#include <Fonts/FreeSansBoldOblique9pt7b.h>
+#include <Fonts/FreeSerif9pt7b.h>
+#include <Fonts/FreeSerifBold9pt7b.h>
+#include <Fonts/FreeSerifItalic9pt7b.h>
+#include <Fonts/FreeSerifBoldItalic9pt7b.h>
+// #include <Fonts/FreeSerifBoldOblique9pt7b.h>
+// #include <Fonts/FreeSerifOblique9pt7b.h>
+#include <Fonts/FreeSerifBoldItalic9pt7b.h>
+#include <Fonts/FreeSerifItalic9pt7b.h>
+
+// Font đặc biệt (pixel, mini, custom)
+#include <Fonts/B_5px.h>
+#include <Fonts/hud5pt7b.h>
 #include <Fonts/mythic_5pixels.h>
-#include <Fonts/B_5px.h>//B_085pt7b
-// #include <Fonts/hud5pt7b.h>
-// #include <Fonts/04B_5px.h>
+#include <Fonts/Org_01.h>
+#include <Fonts/Picopixel.h>
 #include <Fonts/Tiny3x3a2pt7b.h>
-#if defined ESP32
+#include <Fonts/TomThumb.h>
+
 #include <ESPAsyncWebServer.h>
-#endif
+
 
 
 // ==== Pin mapping (giữ nguyên như bạn đang dùng) ====
@@ -171,11 +187,15 @@ VirtualMatrixPanel_T<CHAIN_NONE, MyScanTypeMapping>* virtualDisp = nullptr;
 // ==== Màu sắc mẫu ====
 uint16_t myBLACK, myWHITE, myRED, myGREEN, myBLUE;
 
+
+
+
 AsyncWebServer server(80);
 AsyncWebSocket webSocketServer("/ws");
 // void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length);
 void setTextContentAndCoord(int group, int row, int x, int y, int id, const char* content);
 void get_CoordsAndID(JsonArray textInfoArray, TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP]);
+const GFXfont* getFontByIndex(int index);
 const GFXfont* getFontByName(const String& name);
 void showAllTextLines(TextLine textCoorID[MAX_GROUPS][MAX_LINES_PER_GROUP], char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 void drawShapeFromType(DynamicJsonDocument dataIn);
@@ -192,9 +212,12 @@ void drawTextInShape(DynamicJsonDocument doc);
 void clearMSG(DynamicJsonDocument doc);
 void setup_littleFS();
 void setup_ledPanel();
-void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const String& font, uint16_t color);
+void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const GFXfont* font, uint16_t color) ;
 void mapDataToTextContents( JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
 void mapDocToTextContents(const DynamicJsonDocument doc, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]);
+DynamicJsonDocument loadConfig(String filePath);
+int getTotalPages();
+void showCurrentPage(int currentPage);
 DynamicJsonDocument createSampleJson() ;
 void DrawLine(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t color = myWHITE) {
   virtualDisp->drawLine(x0, y0, x1, y1, color);
@@ -208,6 +231,11 @@ void DrawCircle(uint16_t x, uint16_t y, uint16_t r,uint16_t color = myWHITE) {
 void DrawTriangle(uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint16_t x2, uint16_t y2, uint16_t color = myWHITE) {
   virtualDisp->drawTriangle(x0, y0, x1, y1, x2, y2, color);
 }
+
+int CurrentPage = 0;
+int TotalPages = 0;
+DynamicJsonDocument configDoc = loadConfig("/CONFIG.json");
+
 
 void drawShapeFromType(DynamicJsonDocument dataIn) {
 
@@ -256,7 +284,7 @@ void drawShapeFromType(DynamicJsonDocument dataIn) {
 }
 
 DynamicJsonDocument parseStringToJSON(String jsonStr) {
-    DynamicJsonDocument doc(8000);
+    DynamicJsonDocument doc(8024);
     DeserializationError err = deserializeJson(doc, jsonStr);
     if (err) {
         Serial.print("Lỗi parse JSON: ");
@@ -498,11 +526,22 @@ void get_CoordsAndID(JsonArray textInfoArray, TextLine textCoorID[MAX_GROUPS][MA
     
 //     });
 // }
+  
+const GFXfont* font1 = nullptr;
+const GFXfont* font2 = nullptr;
+const GFXfont* font3 = nullptr;
+const GFXfont* font4 = nullptr;
+
+int conStatus1 = 0;
+int conStatus2 = 0;
+int conStatus3 = 0;
+int conStatus4 = 0;
 
         static bool needSendConfigToClient = false;
         static AsyncWebSocketClient* pendingClient = nullptr;
 void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *payload, size_t length) {
     if (type == WS_EVT_DATA) {
+      Serial.println("Websocket MESSAGE!!!");
         AwsFrameInfo *info = (AwsFrameInfo*)arg;
         if (info->final && info->index == 0 && info->len == length && info->opcode == WS_TEXT) {
             String jsonStr = "";
@@ -511,14 +550,29 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
             }
             Serial.println("Nhận JSON từ web:");
             Serial.println(jsonStr);
-            DynamicJsonDocument doc = parseStringToJSON(jsonStr);
-
+            DynamicJsonDocument doc(8024);
+            doc = parseStringToJSON(jsonStr);
+            // DeserializationError err = deserializeJson(doc, jsonStr);
             if (!doc.isNull()) {
                 // Nếu là masterArray (shapes + texts)
                 if (doc.is<JsonArray>() && doc.size() == 2 && doc[0].is<JsonArray>() && doc[1].is<JsonArray>()) {
                     saveConfig(doc, "/CONFIG.json");
                     draw_MSG(doc); // chỉ gọi draw_MSG cho masterArray
                 }
+                else if (doc.is<JsonObject>() && doc.containsKey("pages") && doc["pages"].is<JsonArray>()) {
+                    JsonArray pages = doc["pages"].as<JsonArray>();
+                    if (pages.size() > 0) {
+                        saveConfig(doc, "/CONFIG.json");
+                        configDoc = loadConfig("/CONFIG.json");
+                        TotalPages = getTotalPages();
+                        
+                        
+                        // Serial.printf("font1: %p, font2: %p, font3: %p, font4: %p\n", font1, font2, font3, font4);
+                        showCurrentPage(CurrentPage); 
+                    
+                    }
+                }
+                
                 // Nếu là text mapping (mảng các object có "data" và "info")
                 else if (doc.is<JsonArray>() && doc[0].is<JsonObject>() && doc[0].containsKey("data") && doc[0].containsKey("info")) {
                     Serial.println("Tôi dang map data");
@@ -591,7 +645,7 @@ void saveConfig(const DynamicJsonDocument& doc, String filePath ) {
 
 // Tác dụng: đọc nội dung từ file config.json rồi return biến struct Config
 DynamicJsonDocument loadConfig(String filePath) {
-  DynamicJsonDocument doc(8000);
+  DynamicJsonDocument doc(8024);
   if (!LittleFS.exists(filePath)) {
     Serial.println("⚠️ File config chưa tồn tại. Sẽ tạo mặc định...");
     saveConfig(doc, filePath); // Lưu file mặc định
@@ -825,9 +879,7 @@ bool modeButtonLastState = HIGH;
 
 volatile int count0 = 0, count1 = 0, count2 = 0, count3 = 0;
 
-int CurrentPage = 0;
-int TotalPages = 0;
-DynamicJsonDocument configDoc = loadConfig("/CONFIG.json");
+
 int getTotalPages() {
     if (configDoc.isNull()) {
         Serial.println("❌ Không thể đọc file CONFIG.json hoặc file rỗng.");
@@ -872,9 +924,8 @@ void showCurrentPage(int currentPage) {
         pages = configDoc.as<JsonArray>();
     }
     if (!pages.isNull() && currentPage < pages.size()) {
-        DynamicJsonDocument pageDoc(2048);
+        DynamicJsonDocument pageDoc(8024);
         pageDoc.set(pages[currentPage]);
-        drawShapeFromType(pageDoc);
         
         
         numberContents[0] = count0;
@@ -889,7 +940,45 @@ void showCurrentPage(int currentPage) {
         // Lấy và vẽ các counter tương ứng cho từng vị trí
         if (pages[currentPage].is<JsonArray>() && pages[currentPage].size() > 1) {
             JsonArray textInfoArray = pages[currentPage][1].as<JsonArray>();
+            for (int i = 0; i < 4; i++) {
+                  int rectWidth = 30;
+                  int rectHeight = 12;
+                  // Lấy kích thước và tọa độ của shape (hình chữ nhật) chứa số
+                  int rectX = 0, rectY = 0;
+                  if (pages[currentPage][0].is<JsonArray>()) {
+                      JsonArray shapes = pages[currentPage][0].as<JsonArray>();
+                      if (shapes.size() > i && shapes[i].is<JsonObject>()) {
+                          JsonObject shape = shapes[i];
+                          if (shape.containsKey("data")) {
+                              JsonArray dataArr = shape["data"].as<JsonArray>();
+                              if (dataArr.size() >= 4) {
+                                  rectX = dataArr[0].as<int>()+1;
+                                  rectY = dataArr[1].as<int>()+1;
+                                  rectWidth = dataArr[2].as<int>()-2;
+                                  rectHeight = dataArr[3].as<int>()-2;
+                              }
+                          }
+                      }
+                  }
+                  virtualDisp->fillRect(rectX, rectY, rectWidth, rectHeight, myBLACK);
+                }
+            JsonArray fontArr = pages[currentPage][2].as<JsonArray>();
+            if (fontArr.size() >= 5) {
+                int brightness = fontArr[4].as<int>();
+                dma_display->setBrightness8(brightness);
+                Serial.printf("Đã set brightness: %d\n", brightness);
+            }
+            JsonArray connectionStatus = pages[currentPage][3].as<JsonArray>();
+            if (connectionStatus.size() >= 3) {
+                conStatus1 = connectionStatus[0].as<int>();
+                conStatus2 = connectionStatus[1].as<int>();
+                conStatus3 = connectionStatus[2].as<int>();
+                conStatus4 = connectionStatus[3].as<int>();
+                Serial.printf("Connection Status: %d, %d, %d, %d\n", conStatus1, conStatus2, conStatus3, conStatus4);
+                }
+
             if(currentPage == 0){
+              
               for (int i = 0; i < 4; i++) {
                   int rectWidth = 30;
                   int rectHeight = 12;
@@ -912,6 +1001,7 @@ void showCurrentPage(int currentPage) {
                   }
                   virtualDisp->fillRect(rectX, rectY, rectWidth, rectHeight, myBLACK);
                 }
+                drawShapeFromType(pageDoc);
                 for (int i = 0; i < 4; i++) {
                     int rectWidth = 30;
                     int rectHeight = 12;
@@ -967,25 +1057,30 @@ void showCurrentPage(int currentPage) {
                     // virtualDisp->setTextColor(color);
                     // virtualDisp->setTextSize(1);
                     // virtualDisp->print(numberContents[i]);
-
+                    
+                    
+                    font1 = getFontByIndex(fontArr[0].as<int>());
+                    font2 = getFontByIndex(fontArr[1].as<int>());
+                    font3 = getFontByIndex(fontArr[2].as<int>());
+                    font4 = getFontByIndex(fontArr[3].as<int>()); 
                     int8_t digits = countDigits(numberContents[i]);                    
-                    if (digits == 1) printLedPanel(numberContents[i], x, y+1, 1, "FreeSans9pt7b", color);
-                    if (digits == 2) printLedPanel(numberContents[i], x, y, 1, "mythic_pixels5pt7b", color);
-                    if (digits == 3) printLedPanel(numberContents[i], x, y, 1, "", color); //3 này ổn đấy
-                    if (digits == 4) printLedPanel(numberContents[i], x, y, 1, "", color);
+                    if (digits == 1) printLedPanel(numberContents[i], x, y+1, 1, font1, color);
+                    if (digits == 2) printLedPanel(numberContents[i], x+1, y, 1, font2, color);
+                    if (digits == 3) printLedPanel(numberContents[i], x, y, 1, font3, color); //3 này ổn đấy
+                    if (digits == 4) printLedPanel(numberContents[i], x, y, 1, font4, color);
                }
             }
         }
         // 7-8,7-14,7-24,7-30,38-8,38-14,38-24,38-30
         //  4   0    5    1    6   2    7    3
-        textCoorID[0][0].x = 7;textCoorID[0][0].y = 8;
-        textCoorID[1][0].x = 7;textCoorID[1][0].y = 14;
-        textCoorID[2][0].x = 7;textCoorID[2][0].y = 24;
-        textCoorID[3][0].x = 7;textCoorID[3][0].y = 30;
-        textCoorID[4][0].x = 38;textCoorID[4][0].y = 8;
-        textCoorID[5][0].x = 38;textCoorID[5][0].y = 14;
-        textCoorID[6][0].x = 38;textCoorID[6][0].y = 24;
-        textCoorID[7][0].x = 38;textCoorID[7][0].y = 30; 
+        textCoorID[3][0].x = 7;textCoorID[7][0].y = 8;//1
+        textCoorID[7][0].x = 7;textCoorID[3][0].y = 14;//2
+        textCoorID[1][0].x = 7;textCoorID[5][0].y = 24;//3
+        textCoorID[5][0].x = 7;textCoorID[1][0].y = 30;//4
+        textCoorID[2][0].x = 38;textCoorID[6][0].y = 8;//5
+        textCoorID[6][0].x = 38;textCoorID[2][0].y = 14;//6
+        textCoorID[0][0].x = 38;textCoorID[4][0].y = 24;//7
+        textCoorID[4][0].x = 38;textCoorID[0][0].y = 30; //8
 
         textCoorID[4][0].color = myWHITE;
         textCoorID[5][0].color = myWHITE;
@@ -994,6 +1089,7 @@ void showCurrentPage(int currentPage) {
         
         if(currentPage == 1){
             // Hiển thị đếm ở trang 1
+            drawShapeFromType(pageDoc);
             for(int i = 0; i < 8; i++) {
                 int x = textCoorID[i][0].x;
                 int y = textCoorID[i][0].y - 5;
@@ -1003,6 +1099,7 @@ void showCurrentPage(int currentPage) {
             // Hiển thị đếm ở trang
         } 
         if ( currentPage == 2) {
+          drawShapeFromType(pageDoc);
             for (int i = 0; i < 8; i++) {
                 int x = textCoorID[i][0].x;
                 int y = textCoorID[i][0].y - 5;
@@ -1012,6 +1109,8 @@ void showCurrentPage(int currentPage) {
         }
         if(currentPage == 3){
             // Hiển thị đếm ở trang 1
+          drawShapeFromType(pageDoc);
+
             for(int i = 0; i < 8; i++) {
                 int x = textCoorID[i][0].x;
                 int y = textCoorID[i][0].y - 5;
@@ -1025,6 +1124,13 @@ void showCurrentPage(int currentPage) {
         GenNumber(3, 0, 17, 2,  virtualDisp->color565(93, 71, 255));
         GenNumber(4, 32, 17, 2,  virtualDisp->color565(93, 71, 255));
 
+
+        virtualDisp->drawLine(2, 7, 2, 7+conStatus1-1, virtualDisp->color565(128, 0, 255));
+        virtualDisp->drawLine(34, 7, 34, 7+conStatus2-1, virtualDisp->color565(255, 255, 0));
+        virtualDisp->drawLine(2, 24, 2, 24+conStatus3-1, virtualDisp->color565(0, 255, 0));
+        virtualDisp->drawLine(34, 24, 34, 24+conStatus4-1, virtualDisp->color565(0, 128, 255));
+
+
         // else {
         //     Serial.println("Không ở trang 1, không hiển thị đếm");
         // }
@@ -1034,43 +1140,73 @@ void showCurrentPage(int currentPage) {
     }
 }
 
-const GFXfont* getFontByName(const String& name) {
-    if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
-    else if (name == "FreeMono9pt7b") return &FreeMono9pt7b;
-    
-    else if (name == "mythic_5pixels") return &mythic_pixels5pt7b;
-    else if (name == "B_5px") return &B_085pt7b;
-    else if (name == "Tiny3x3a2pt7b") return &Tiny3x3a2pt7b;
-    else if (name == "TomThumb") return &TomThumb; // nếu bạn thêm TomThumb.h
-    else if (name == "Picopixel") return &Picopixel; // nếu bạn thêm Picopixel.h
-    else return nullptr; // font không hỗ trợ
-}
+const GFXfont* getFontByIndex(int index) {
+    switch (index) {
+        case 0:  return nullptr; // Default
+        case 1:  return &FreeMono9pt7b;
+        case 2:  return &FreeMonoBold9pt7b;
+        case 3:  return &FreeMonoOblique9pt7b;
+        case 4:  return &FreeMonoBoldOblique9pt7b;
+        case 5:  return &FreeSans9pt7b;
+        case 6:  return &FreeSansBold9pt7b;
+        case 7:  return &FreeSansOblique9pt7b;
+        case 8:  return &FreeSansBoldOblique9pt7b;
+        case 9:  return &FreeSerif9pt7b;
+        case 10: return &FreeSerifBold9pt7b;
+        case 11: return &FreeSerifItalic9pt7b;
+        case 12: return &FreeSerifBoldItalic9pt7b;
 
-void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const String& font, uint16_t color = myWHITE) {
+        case 15: return &B_085pt7b; // 04B_5px (nếu tên biến đúng là B_085pt7b)
+
+        case 17: return &hud5pt7b;
+        case 18: return &mythic_pixels5pt7b;
+        case 19: return &Org_01;
+        case 20: return &Picopixel;
+        case 21: return &Tiny3x3a2pt7b;
+        case 22: return &TomThumb;
+        default: return nullptr;
+    }
+}
+const GFXfont* getFontByName(const String& name) {
+    // FreeMono
+    if (name == "FreeMono9pt7b") return &FreeMono9pt7b;
+    else if (name == "FreeMonoBold9pt7b") return &FreeMonoBold9pt7b;
+    else if (name == "FreeMonoOblique9pt7b") return &FreeMonoOblique9pt7b;
+    else if (name == "FreeMonoBoldOblique9pt7b") return &FreeMonoBoldOblique9pt7b;
+
+    // FreeSans
+    else if (name == "FreeSans9pt7b") return &FreeSans9pt7b;
+    else if (name == "FreeSansBold9pt7b") return &FreeSansBold9pt7b;
+    else if (name == "FreeSansOblique9pt7b") return &FreeSansOblique9pt7b;
+    else if (name == "FreeSansBoldOblique9pt7b") return &FreeSansBoldOblique9pt7b;
+
+    // FreeSerif
+    else if (name == "FreeSerif9pt7b") return &FreeSerif9pt7b;
+    else if (name == "FreeSerifBold9pt7b") return &FreeSerifBold9pt7b;
+    else if (name == "FreeSerifItalic9pt7b") return &FreeSerifItalic9pt7b;
+    else if (name == "FreeSerifBoldItalic9pt7b") return &FreeSerifBoldItalic9pt7b;
+
+
+    // Font đặc biệt (pixel, mini, custom)
+    else if (name == "04B_5px") return &B_085pt7b;
+    else if (name == "hud5pt7b") return &hud5pt7b;
+    else if (name == "mythic_5pixels") return &mythic_pixels5pt7b;
+    else if (name == "Org_01") return &Org_01;
+    else if (name == "Picopixel") return &Picopixel;
+    else if (name == "Tiny3x3a2pt7b") return &Tiny3x3a2pt7b;
+    else if (name == "TomThumb") return &TomThumb;
+
+    // Nếu không khớp, trả về nullptr
+    else return nullptr;
+}
+void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const GFXfont* font, uint16_t color = myWHITE) {
     // In chữ lên LED Panel
     virtualDisp->setTextColor(color);
-    
-    
-    if (font != "") {
-      // if (isDigit(font[0])) {
-      //   Serial.print ("Font là số: ");
-      //   Serial.println(font.toInt());
-      //   Serial.print ("Số : ");
-      //   Serial.println((int)number);
-      //   if (font.toInt() == 0)  {GenNumber((int)number, x - autoMiddle(5, number), y, 0, color); return;}
-      //   else if (font.toInt() == 1)  {GenNumber((int)number, x - autoMiddle(3, number), y, 1, color); return;}
-      //   else if (font.toInt() == 2)  {GenNumber((int)number, x - autoMiddle(3, number), y, 2, color); return;}
-      //   else {GenNumber(number, x, y, 5*fontSize, color); return;}        
-      // }
-      const GFXfont* fontPtr = getFontByName(font);
-      if (fontPtr) {
-          virtualDisp->setFont(fontPtr);
+      if (font) {
+          virtualDisp->setFont(font);
       } else {
-          Serial.println("❌ Font không hỗ trợ: " + font);
-          virtualDisp->setFont(&mythic_pixels5pt7b); // Mặc định nếu không tìm thấy font
+          virtualDisp->setFont(); // Mặc định nếu không tìm thấy font
       }
-    }
-    else virtualDisp->setFont(); // Mặc định nếu không có font
     int16_t x1, y1;
     uint16_t w, h;
     virtualDisp->getTextBounds("0", 0, 0, &x1, &y1, &w, &h);
@@ -1078,9 +1214,9 @@ void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const String&
     Serial.println ("Font col px: " + String(fontColPx));
 
     int8_t digitOfNumber = countDigits(number);
-    if (font == "") x = x - autoMiddle(5, number);    
+    if (font == nullptr) x = x - autoMiddle(5, number);    
     else x = x - autoMiddle(fontColPx, number);
-    if (font == "") virtualDisp->setCursor(x, y-7);
+    if (font == nullptr) virtualDisp->setCursor(x, y-7);
     else virtualDisp->setCursor(x, y);
     virtualDisp->print(number);
 }
@@ -1203,8 +1339,6 @@ void setup() {
         configDoc = loadConfig("/CONFIG.json");
         TotalPages = getTotalPages();
         // Khởi tạo WebSocket server (đã gọi trong setup_ledPanel)
-
-
         // Hiển thị nội dung từ DATA.json nếu có
         DynamicJsonDocument dataDoc = loadConfig("/DATA.json");
         if (dataDoc.is<JsonArray>() && dataDoc.size() > 0) {
@@ -1223,7 +1357,7 @@ void setup() {
 }
     // Hiển thị chữ lên màn hình
     // showAllTextLines(textCoorID, textContents);
-    
+
 void loop() {
     static bool lastModeBtn = HIGH;
     bool modeBtn = digitalRead(MODE_BUTTON_PIN);
@@ -1379,7 +1513,8 @@ if (currentTime - lastStatusTime >= 3000) {
     // ESP32-S3: Không có API chính thức để đọc nhiệt độ chip
     Serial.printf("RAM: %u/%u | %u/%u KB (min: %u | %u KB) | CPU: %u MHz\n", freeHeap, totalHeap, freeHeap/1024 , totalHeap/1024, minFreeHeap, minFreeHeap/1024, cpuFreq);
     // Serial.println("Nhiệt độ chip: Không hỗ trợ trực tiếp trên ESP32-S3.");
-}
+
+  }
 
 // Trong loop() thêm đoạn sau để xử lý gửi khi rảnh:
         if (needSendConfigToClient && pendingClient != nullptr) {
