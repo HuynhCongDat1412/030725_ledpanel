@@ -10,23 +10,10 @@
         #canvasWrap{overflow:auto;}
         canvas{background:#222;display:block;}
         .btn{margin:4px;}
-
-        .adminConfig {
-            display: none;
-        }
         </style>
       </head>
       <body>
-        <input type="button" value="Setting" onclick="showLoginModal()">
-        <div id="loginModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;">
-            <div style="background:#fff;padding:24px;border-radius:8px;min-width:220px;margin:auto;display:flex;flex-direction:column;align-items:center;">
-                <h3>Admin Login</h3>
-                <input id="adminPassword" type="password" placeholder="Enter password..." style="width:180px;margin-bottom:12px;">
-                <button id="loginBtn" onclick="loginAdmin()">Login</button>
-            </div>
-        </div>
         <h2>LMD Shape & Text Editor</h2>
-        
         <div class="card">
         <h3>Window Status</h3>
         <!-- <label>Rows: <input id="rows" type="number" min="1" max="30" value="15"></label>
@@ -36,10 +23,10 @@
         <label>
             Panel Size: <input id="panelSize" type="range" min="1" max="15" value="15" onchange="resizeCanvas()">
         </label>
+
         <label>Brightness: <input id="brightness" type="range" min="0" max="100" value="40" style="width:180px;"></label>
-        
         </div>
-        <div class="card adminConfig">
+        <div class="card">
         <button class="btn" onclick="addShape('line')">Add Line</button>
         <button class="btn" onclick="addShape('rect')">Add Rect</button>
         <button class="btn" onclick="addShape('round')">Add Round</button>
@@ -66,12 +53,29 @@
             <tbody></tbody>
         </table>
         </div>
-        <div class="card adminConfig">
+        <div class="card">
         <button class="btn" onclick="saveLMD()">Save</button>
         <button class="btn" onclick="loadLMD()">Load</button>
         <input type="text" style="width:100%;margin-top:8px;" placeholder="Paste JSON here to load...">
         </div>
-        <div class="card adminConfig">
+        <div class="card">
+            <label>Connection ID: 1</label>
+            <input style="width: 150px;" id="status1" type="number"  max="4" min="0" step="1" id="connectionStatus_1" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(1, document.getElementById('connectionStatus_1').value)"> -->
+            <br>
+            <label>Connection ID: 2</label>
+            <input style="width: 150px;" id="status2" type="number"  max="4" min="0" step="1" id="connectionStatus_2" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(2, document.getElementById('connectionStatus_2').value)"> -->
+            <br>
+            <label>Connection ID: 3</label>
+            <input style="width: 150px;" id="status3" type="number"  max="4" min="0" step="1" id="connectionStatus_3" value="4"> 
+            <!-- <input type="button" value="Update" onclick="updateStatus(3, document.getElementById('connectionStatus_3').value)"> -->
+            <br>
+            <label>Connection ID: 4</label>
+            <input style="width: 150px;" id="status4" type="number"  max="4" min="0" step="1" id="connectionStatus_4" value="4"> 
+            <br>
+        </div>
+        <div class="card">
             <Label>Font for 1 digit</Label>
             <select class="font-select" id="font1digit">
                 
@@ -123,49 +127,21 @@
                 <button class="btn" onclick="genCardJson(4)">Set</button>
             </div>
         </div>
-        <div class="card adminConfig">
+        <div class="card">
             <label>Update Card by JSON:</label>
             <input id="card-json-input" type="text" style="width:100%;" placeholder='{"id":1,"plan":"1234","result":"5678"}'>
             <button class="btn" onclick="updateCardFromJson()">Update Card</button>
         </div>
-        <div class="card adminConfig">
+        <div class="card">
             <label>Mapping Data (JSON):</label>
             <input id="mapping-json-input" type="text" style="width:100%;" value='[{"id":1,"plan":0,"result":1},{"id":2,"plan":2,"result":3},{"id":3,"plan":4,"result":5},{"id":4,"plan":6,"result":7}]'>
 
         </div>
-        <div class="card adminConfig">
+        <div class="card"></div>
             <label>CMND Update Output:</label>
             <input id="cmnd-update-output" type="text" style="width:100%;" readonly>
         </div>
         <script>
-        function showLoginModal() {
-            let modal = document.getElementById('loginModal');
-            modal.style.display = 'flex';
-            setTimeout(function() {
-                document.getElementById('adminPassword').focus();
-            }, 100);
-            document.getElementById('adminPassword').value = '';
-        }
-
-        document.getElementById('adminPassword').addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                document.getElementById('loginBtn').click();
-            }
-        });
-
-        function loginAdmin() {
-            let pw = document.getElementById('adminPassword').value;
-            if (pw === 'admin') { // Đổi thành mật khẩu bạn muốn
-                document.getElementById('loginModal').style.display = 'none';
-                admin_visible();
-            } else {
-                alert('Wrong password!');
-                document.getElementById('adminPassword').focus();
-            }
-        }
-        </script>
-        <script>
-
         const colorOptionsHTML = `
             <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
             <option value="#00ff00" style="background:#00ff00;color:#000;">Green</option>
@@ -189,7 +165,7 @@
         `;
             
 
-       const fontOptionsHTML = `
+        const fontOptionsHTML = `
             <option value="">Default</option>
             <option value="FreeMono9pt7b">FreeMono9pt7b</option>
             <option value="FreeMonoBold9pt7b">FreeMonoBold9pt7b</option>
@@ -203,19 +179,18 @@
             <option value="FreeSerifBold9pt7b">FreeSerifBold9pt7b</option>
             <option value="FreeSerifItalic9pt7b">FreeSerifItalic9pt7b</option>
             <option value="FreeSerifBoldItalic9pt7b">FreeSerifBoldItalic9pt7b</option>
-            <option value="ONYX6pt7b">ONYX6pt7b</option>
-            <option value="ENGR6pt7b">ENGR6pt7b</option>
-            <option value="BOD_PSTC6pt7b">BOD_PSTC6pt7b</option>
-            <option value="dutcheb6pt7b">dutcheb6pt7b</option>
+            <option value="FreeSerifBoldOblique9pt7b">FreeSerifBoldOblique9pt7b</option>
+            <option value="FreeSerifOblique9pt7b">FreeSerifOblique9pt7b</option>
+            <option value="04B_5px">04B_5px</option>
+            <option value="B_5px">B_5px</option>
             <option value="hud5pt7b">hud5pt7b</option>
-            <option value="mythic_pixels5pt7b">mythic_pixels5pt7b</option>
+            <option value="mythic_5pixels">mythic_5pixels</option>
             <option value="Org_01">Org_01</option>
             <option value="Picopixel">Picopixel</option>
             <option value="Tiny3x3a2pt7b">Tiny3x3a2pt7b</option>
             <option value="TomThumb">TomThumb</option>
-            <option value="dutcheb7pt7b">dutcheb7pt7b</option>
-            <option value="dutcheb8pt7b">dutcheb8pt7b</option>
-        `;
+        `;            
+            
         function genCardJson(cardId) {
             const plan = document.getElementById('card' + cardId + '-plan').value;
             const result = document.getElementById('card' + cardId + '-result').value;
@@ -763,6 +738,7 @@ function renderShapeTable() {
             document.querySelectorAll('select.font-select').forEach(function(sel) {
                 sel.innerHTML = fontOptionsHTML;
             });
+
         });
         // Sửa lại saveLMD để lưu toàn bộ pages
     function saveLMD() {
@@ -847,6 +823,7 @@ function onload(event) {
 
 function onMessage(event){
     let msg = JSON.parse(event.data);
+    console.log("Received message:", msg);
     if (msg.pages) {
         loadLMDFromObj(msg);
     }
@@ -907,6 +884,7 @@ function loadLMDFromObj(obj) {
     }
     currentPageIdx = 0;
     shapes = pages[0].shapes;
+    
     drawAll();
     renderTabs();
 }
@@ -1026,23 +1004,12 @@ function loadLMDFromObj(obj) {
             let font4 = document.getElementById('font4digits');
             let input = document.querySelector('input[type="text"]');
             let fontData = obj?.pages?.[0]?.[2] || [0, 0, 0, 0];
-
-            font1.selectedIndex = fontData[0] || 0;
-            font2.selectedIndex = fontData[1] || 0;
-            font3.selectedIndex = fontData[2] || 0;
-            font4.selectedIndex = fontData[3] || 0;
-        }
-
-        function admin_visible() {
-            let adminConfigs = document.querySelectorAll('.adminConfig');
-            adminConfigs.forEach(function(adminConfig) {
-                if (adminConfig.style.display === 'none' || adminConfig.style.display === '') {
-                    adminConfig.style.display = 'block';
-                } else {
-                    adminConfig.style.display = 'none';
-                }
-            });
-        }
+    
+                font1.selectedIndex = fontData[0] || 0;
+                font2.selectedIndex = fontData[1] || 0;
+                font3.selectedIndex = fontData[2] || 0;
+                font4.selectedIndex = fontData[3] || 0;
+            }
         </script>
         <a href="/">Monitor</a>
       </body>

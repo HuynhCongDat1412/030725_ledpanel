@@ -75,21 +75,10 @@ void loop(){
 #include <Fonts/FreeSerifItalic9pt7b.h>
 #include <Fonts/FreeSerifBoldItalic9pt7b.h>
 // #include <Fonts/FreeSerifBoldOblique9pt7b.h>
-// #include <Fonts/FreeSerifOblique9pt7b.h>
 #include <Fonts/micross10pt7b.h>
-#include <Fonts/micross9pt7b.h>
-#include <Fonts/micross6pt7b.h>
-#include <Fonts/micross5pt7b.h>
-#include <Fonts/micross7pt7b.h>
-#include <Fonts/micross8pt7b.h>
+// #include <Fonts/FreeSerifOblique9pt7b.h>
 #include <Fonts/FreeSerifBoldItalic9pt7b.h>
 #include <Fonts/FreeSerifItalic9pt7b.h>
-#include <Fonts/SansSerifCollection9pt7b.h>
-#include <Fonts/ONYX6pt7b.h>
-#include <Fonts/BOD_PSTC6pt7b.h>
-#include <Fonts/dutcheb6pt7b.h>
-#include <Fonts/dutcheb7pt7b.h>
-#include <Fonts/dutcheb8pt7b.h>
 
 // Font đặc biệt (pixel, mini, custom)
 #include <Fonts/B_5px.h>
@@ -99,7 +88,7 @@ void loop(){
 #include <Fonts/Picopixel.h>
 #include <Fonts/Tiny3x3a2pt7b.h>
 #include <Fonts/TomThumb.h>
-#include <Fonts/ENGR6pt7b.h>
+
 #include <ESPAsyncWebServer.h>
 
 
@@ -146,12 +135,12 @@ struct TextLine {
 #ifdef USE_LORA
 
 // LoRa E32 Configuration Pins
-// #define E32_M0_PIN    15
-// #define E32_M1_PIN    16
-// #define E32_TX_PIN    17
-// #define E32_RX_PIN    18
-// #define E32_AUX_PIN   -1
-//   HardwareSerial MySerial1(1); // UART1
+#define E32_M0_PIN    15
+#define E32_M1_PIN    16
+#define E32_TX_PIN    17
+#define E32_RX_PIN    18
+#define E32_AUX_PIN   -1
+  HardwareSerial MySerial1(1); // UART1
 // M_LoRa_E32::M_LoRa_E32() {}
 
 // void sendDebugMessage(const String& message) {
@@ -180,13 +169,12 @@ char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]; // [nhóm][
 int numberContents[MAX_TEXT_LENGTH]; // Dùng để lưu số đếm, nếu có
 
 
-#include "ALC_Project.h"
+// #include "ALC_Project.h"
+// Thay Serial.print/println bằng hàm này
 // void consolePrintln(const String& line) {
 //   Serial.println(line);
 // //   addConsoleLine(line + '\n');
 // }
-#include "ModuleLoRaE32.h"
-M_LoRa_E32 LORAE32;
 
 
 // ==== Scan type mapping ====
@@ -357,12 +345,7 @@ void GenNumber(int number,int x, int y, int font, uint16_t color = myWHITE) {
             if (font == 2){virtualDisp->fillRect(x+1, y, 3, 5, myBLACK);} // Xóa vùng số cũ trước khi vẽ số mới
             // Adjust x, y to top-left of 5x5 box
             x = x ;
-            if (number == 1 && font == 2) {
-              x-= 1;
-              virtualDisp->drawLine(x+2, y+4, x+4, y+4, color);
-              virtualDisp->drawLine(x+2, y+1, x+2, y+1, color);
-
-            }
+            if (number == 1) x-= 1;
             y = y ; // Bắt đầu vẽ từ (x+1, y+1) để tạo khoảng cách
             // Segment positions for 5x5 grid
             // A: (x+1,y) to (x+3,y)
@@ -755,10 +738,10 @@ void setup_ledPanel(){
                 myORANGE = virtualDisp->color565(255, 128, 0);
                 myGREEN  = virtualDisp->color565(0, 255, 0);
                 myBLUE   = virtualDisp->color565(0, 0, 255);
-                connectionStatusColor[3] = myRED;
-                connectionStatusColor[2] = myORANGE;
-                connectionStatusColor[1] = myYELLOW;
-                connectionStatusColor[0] = myGREEN;
+                connectionStatusColor[0] = myRED;
+                connectionStatusColor[1] = myORANGE;
+                connectionStatusColor[2] = myYELLOW;
+                connectionStatusColor[3] = myGREEN;
 
                 virtualDisp->fillScreen(myBLACK);
                 initialized = true;
@@ -784,21 +767,7 @@ void setup_ledPanel(){
     Serial.println(">> RAM:" + String(ESP.getFreeHeap()/1024) + " KB");
 }
 
-DynamicJsonDocument createSampleJson() {
-    DynamicJsonDocument doc(4096);
-    JsonArray arr = doc.to<JsonArray>();
 
-    for (int group = 0; group < MAX_GROUPS; group++) {
-        for (int row = 0; row < 4; row++) {
-            JsonObject obj = arr.createNestedObject();
-            obj["data"] = String(group) + "-" + String(row);
-            JsonArray info = obj.createNestedArray("info");
-            info.add(group); // shapeIndex
-            info.add(row);   // row
-        }
-    }
-    return doc;
-}
 void mapDataToTextContents(JsonArray arr, char textContents[MAX_GROUPS][MAX_LINES_PER_GROUP][MAX_TEXT_LENGTH]) {
     //xóa hết trước khi map
     // for (int g = 0; g < MAX_GROUPS; g++) {
@@ -905,16 +874,7 @@ unsigned long modeButtonPressTime = 0;
 bool modeButtonLastState = HIGH;
 
 volatile int count0 = 0, count1 = 0, count2 = 0, count3 = 0;
-volatile int plan0 = 0, plan1 = 0, plan2 = 0, plan3 = 0;
-uint16_t counters[4] = {0}; // 4 số đếm, 4 số hiển thị
-uint16_t plans[4] = {0}; // 4 số đếm, 4 số hiển thị
-int swapConnectQuality(int val) {
-    if (val == 4) return 1;
-    if (val == 3) return 2;
-    if (val == 2) return 3;
-    if (val == 1) return 4;
-    return val;
-}
+
 
 int getTotalPages() {
     if (configDoc.isNull()) {
@@ -964,14 +924,14 @@ void showCurrentPage(int currentPage) {
         pageDoc.set(pages[currentPage]);
         
         
-        numberContents[0] = count3;
-        numberContents[1] = count2;
-        numberContents[2] = count1;
-        numberContents[3] = count0;
-        numberContents[4] = plan3;
-        numberContents[5] = plan2;
-        numberContents[6] = plan1;
-        numberContents[7] = plan0;
+        numberContents[0] = count0;
+        numberContents[1] = count1;
+        numberContents[2] = count2;
+        numberContents[3] = count3;
+        numberContents[4] = count0;
+        numberContents[5] = count1;
+        numberContents[6] = count2;
+        numberContents[7] = count3;
         
         // Lấy và vẽ các counter tương ứng cho từng vị trí
         if (pages[currentPage].is<JsonArray>() && pages[currentPage].size() > 1) {
@@ -1002,14 +962,14 @@ void showCurrentPage(int currentPage) {
             if (fontArr.size() >= 5) {
                 int brightness = fontArr[4].as<int>();
                 dma_display->setBrightness8(brightness);
-                // Serial.printf("Đã set brightness: %d\n", brightness);
+                Serial.printf("Đã set brightness: %d\n", brightness);
             }
             JsonArray connectionStatus = pages[currentPage][3].as<JsonArray>();
             if (connectionStatus.size() >= 3) {
-                // conStatus1 = connectionStatus[0].as<int>();
-                // conStatus2 = connectionStatus[1].as<int>();
-                // conStatus3 = connectionStatus[2].as<int>();
-                // conStatus4 = connectionStatus[3].as<int>();
+                conStatus1 = connectionStatus[0].as<int>();
+                conStatus2 = connectionStatus[1].as<int>();
+                conStatus3 = connectionStatus[2].as<int>();
+                conStatus4 = connectionStatus[3].as<int>();
                 
                 }
 
@@ -1099,12 +1059,9 @@ void showCurrentPage(int currentPage) {
                     font2 = getFontByIndex(fontArr[1].as<int>());
                     font3 = getFontByIndex(fontArr[2].as<int>());
                     font4 = getFontByIndex(fontArr[3].as<int>()); 
-                    int8_t digits = countDigits(numberContents[i]);    
-                    // printLedPanel(1145,x,y,1,font1,color);
-                    
-
+                    int8_t digits = countDigits(numberContents[i]);                    
                     if (digits == 1) printLedPanel(numberContents[i], x, y+1, 1, font1, color);
-                    if (digits == 2) printLedPanel(numberContents[i], x+1, y+1, 1, font2, color);
+                    if (digits == 2) printLedPanel(numberContents[i], x+1, y, 1, font2, color);
                     if (digits == 3) printLedPanel(numberContents[i], x, y, 1, font3, color); //3 này ổn đấy
                     if (digits == 4) printLedPanel(numberContents[i], x, y, 1, font4, color);
                }
@@ -1158,15 +1115,16 @@ void showCurrentPage(int currentPage) {
             }
             // Hiển thị đếm ở trang
         } 
-        GenNumber(1, 0, 1, 2, virtualDisp->color565(255, 115, 255));
-        GenNumber(2, 32, 1, 2, virtualDisp->color565(255, 115, 255));
-        GenNumber(3, 0, 17, 2,  virtualDisp->color565(255, 115, 255));
-        GenNumber(4, 32, 17, 2,  virtualDisp->color565(255, 115, 255));
+        GenNumber(1, 0, 1, 2, virtualDisp->color565(93, 71, 255));
+        GenNumber(2, 32, 1, 2, virtualDisp->color565(93, 71, 255));
+        GenNumber(3, 0, 17, 2,  virtualDisp->color565(93, 71, 255));
+        GenNumber(4, 32, 17, 2,  virtualDisp->color565(93, 71, 255));
 
-        virtualDisp->drawLine(1, 7+conStatus1-1, 1, 7+3 , connectionStatusColor[conStatus1-1]);
-        virtualDisp->drawLine(33, 7+conStatus2-1, 33, 7+3 , connectionStatusColor[conStatus2-1]);
-        virtualDisp->drawLine(1, 24+conStatus3-1, 1, 24+3 ,connectionStatusColor[conStatus3-1]);
-        virtualDisp->drawLine(33, 24+conStatus4-1, 33, 24+3 , connectionStatusColor[conStatus4-1]);
+
+        virtualDisp->drawLine(2, 7, 2, 7+conStatus1-1, connectionStatusColor[conStatus1-1]);
+        virtualDisp->drawLine(34, 7, 34, 7+conStatus2-1, connectionStatusColor[conStatus2-1]);
+        virtualDisp->drawLine(2, 24, 2, 24+conStatus3-1,connectionStatusColor[conStatus3-1]);
+        virtualDisp->drawLine(34, 24, 34, 24+conStatus4-1, connectionStatusColor[conStatus4-1]);
 
 
         // else {
@@ -1193,18 +1151,15 @@ const GFXfont* getFontByIndex(int index) {
         case 10: return &FreeSerifBold9pt7b;
         case 11: return &FreeSerifItalic9pt7b;
         case 12: return &FreeSerifBoldItalic9pt7b;
-        case 13: return &ONYX6pt7b;
-        case 14: return &ENGR6pt7b;
-        case 15: return &BOD_PSTC6pt7b; // 04B_5px (nếu tên biến đúng là B_085pt7b)
-        case 16: return &dutcheb6pt7b;
+        case 13: return &micross10pt7b;
+        case 15: return &B_085pt7b; // 04B_5px (nếu tên biến đúng là B_085pt7b)
+
         case 17: return &hud5pt7b;
         case 18: return &mythic_pixels5pt7b;
         case 19: return &Org_01;
         case 20: return &Picopixel;
         case 21: return &Tiny3x3a2pt7b;
         case 22: return &TomThumb;
-        case 23: return &dutcheb7pt7b;
-        case 24: return &dutcheb8pt7b;
         default: return nullptr;
     }
 }
@@ -1252,15 +1207,12 @@ void printLedPanel( int16_t number, int x, int y, int8_t fontSize, const GFXfont
     uint16_t w, h;
     virtualDisp->getTextBounds("0", 0, 0, &x1, &y1, &w, &h);
     uint8_t fontColPx = w*fontSize;
-    // Serial.println ("Font col px: " + String(fontColPx));
+    Serial.println ("Font col px: " + String(fontColPx));
 
     int8_t digitOfNumber = countDigits(number);
     if (font == nullptr) x = x - autoMiddle(5, number);    
     else x = x - autoMiddle(fontColPx, number);
     if (font == nullptr) virtualDisp->setCursor(x, y-7);
-    // if(font == &dutcheb7pt7b) y+1;
-    // if(font== &FreeSerifBold9pt7b) y+1;
-
     else virtualDisp->setCursor(x, y);
     virtualDisp->print(number);
 }
@@ -1328,28 +1280,66 @@ void setup() {
         Serial.println("❌ Khởi tạo panel thất bại. Không tiếp tục.");
         while (1) delay(1000);
     }
-    ALC_setup(server);
-    LORAE32.initLoRaE32(); // Khởi tạo LoRa E32
-    LORAE32.API_Setup(server); // Thiết lập API cho LoRa E32  
-
+    // Kiểm tra file MODE.txt để chọn chế độ chạy (CONFIG hoặc NORMAL)
+    String mode = "NORMAL";
+    // if (LittleFS.exists("/MODE.txt")) {
+        File modeFile;
+    //     if (!LittleFS.exists("/MODE.txt")) {
+    //         // Nếu file chưa tồn tại, tạo mới với nội dung NORMAL
+            modeFile = LittleFS.open("/MODE.txt", "w");
+            if (modeFile) {
+            modeFile.print("NORMAL");
+            modeFile.close();
+            }
+    //         // Mở lại file để đọc
+    //         modeFile = LittleFS.open("/MODE.txt", "r");
+    //     } else {
+    //         modeFile = LittleFS.open("/MODE.txt", "r");
+    //     }
+    //     if (modeFile) {
+    //         mode = modeFile.readString();
+    //         mode.trim();
+    //         modeFile.close();
+    //     }
+    // }
+    if (mode == "CONFIG") {
+        configMode = true;
+        // ALC_setup(server);
+        Serial.println(">> Đang ở chế độ CONFIG (WebSocket mở)");
+    } else {
+        configMode = false;
+        Serial.println(">> Đang ở chế độ NORMAL (hiển thị panel)");
+    }
+    // Khởi tạo các nút nhấn trước khi khởi tạo LED Panel để tránh xung đột pin
     pinMode(MODE_BUTTON_PIN, INPUT_PULLUP);
     pinMode(COUNT0_BUTTON_PIN, INPUT_PULLUP);
     pinMode(COUNT1_BUTTON_PIN, INPUT_PULLUP);
     pinMode(COUNT2_BUTTON_PIN, INPUT_PULLUP);
     pinMode(COUNT3_BUTTON_PIN, INPUT_PULLUP);
-    Serial.println(">> Đang ở chế độ NORMAL, sẽ hiển thị panel");
-    // Tạo file CONFIG.json nếu chưa có
-    if (!LittleFS.exists("/CONFIG.json")) {
-        Serial.println("⚠️ File CONFIG.json không tồn tại, tạo mới...");
-    } else {
-        Serial.println("✅ Đã tìm thấy CONFIG.json, sẽ load nội dung.");
+    if (mode == "NORMAL") {
+        Serial.println(">> Đang ở chế độ NORMAL, sẽ hiển thị panel");
+        // Hiển thị chữ
+        // Khởi tạo LED Panel trước để có virtualDisp, myWHITE, myBLACK...
+
+        // MySerial1.begin(9600, SERIAL_8N1, E32_RX_PIN, E32_TX_PIN); // Khởi tạo Serial1 cho LoRa E32
+        // Serial1.begin(9600); // Khởi tạo LoRa E32
+        // Tạo file CONFIG.json nếu chưa có
+        if (!LittleFS.exists("/CONFIG.json")) {
+            Serial.println("⚠️ File CONFIG.json không tồn tại, tạo mới...");
+        } else {
+            Serial.println("✅ Đã tìm thấy CONFIG.json, sẽ load nội dung.");
+        }
+
+        configDoc = loadConfig("/CONFIG.json");
+        TotalPages = getTotalPages();
+        // Khởi tạo WebSocket server (đã gọi trong setup_ledPanel)
+        // Hiển thị nội dung từ DATA.json nếu có
+           
     }
-    configDoc = loadConfig("/CONFIG.json");
-    TotalPages = getTotalPages();
-    // Khởi tạo WebSocket server (đã gọi trong setup_ledPanel)
-    // Hiển thị nội dung từ DATA.json nếu có
-    DynamicJsonDocument dataDoc = loadConfig("/DATA.json");
-    showCurrentPage(0);
+    // Serial.println(">> Serial1 Initialized for LoRa E32");
+    // pinMode(E32_M0_PIN, OUTPUT);
+    // pinMode(E32_M1_PIN, OUTPUT);
+    // Serial1.begin(9600, SERIAL_8N1, E32_RX_PIN, E32_TX_PIN);
 }
     // Hiển thị chữ lên màn hình
     // showAllTextLines(textCoorID, textContents);
@@ -1374,6 +1364,7 @@ void loop() {
         // Serial.printf("Chuyển sang trang %d/%d\n", currentPage, totalPages);
         currentPage++;
         if(currentPage > totalPages) currentPage = 0; // Quay lại trang đầu nếu quá cuối
+        // currentPage = (currentPage + 1) % (totalPages + 1); // Quay lại trang đầu nếu quá cuối
         Serial.printf("Trang hiện tại: %d\n", currentPage);
         if (currentPage < 0) currentPage = 0; // Đảm bảo currentPage không âm
         if (currentPage > totalPages) currentPage = totalPages;
@@ -1384,45 +1375,6 @@ void loop() {
         
     }
     lastModeBtn = modeBtn;
-    ALC_loop(); 
-    for(uint8_t i = 0; i < 4; i++) {
-      if(getResult(i) != counters[i]) {
-        counters[i] = getResult(i);
-        Serial.printf("Counter %d: %d\n", i, counters[i]);
-        if (i == 0) count0 = counters[i];
-        else if (i == 1) count1 = counters[i];
-        else if (i == 2) count2 = counters[i];
-        else if (i == 3) count3 = counters[i];
-        // Hiển thị lại trang hiện tại
-        showCurrentPage(CurrentPage); delay(100); 
-      }
-    }
-    
-    for(uint8_t i = 0; i < 4; i++) {
-      if(getPlan(i) != plans[i]) {
-        plans[i] = getPlan(i);
-        Serial.printf("Plan %d: %d\n", i, plans[i]);
-        if (i == 0) plan0 = plans[i];
-        else if (i == 1) plan1 = plans[i];
-        else if (i == 2) plan2 = plans[i];
-        else if (i == 3) plan3 = plans[i];
-        showCurrentPage(CurrentPage); delay(100);
-      }
-    }
-          conStatus1 = swapConnectQuality(getConnectQuality(0));
-          conStatus2 = swapConnectQuality(getConnectQuality(1));
-          conStatus3 = swapConnectQuality(getConnectQuality(2));
-          conStatus4 = swapConnectQuality(getConnectQuality(3));
-        if (
-            conStatus1 != swapConnectQuality(getConnectQuality(0)) ||
-            conStatus2 != swapConnectQuality(getConnectQuality(1)) ||
-            conStatus3 != swapConnectQuality(getConnectQuality(2)) ||
-            conStatus4 != swapConnectQuality(getConnectQuality(3))) {
-            showCurrentPage(CurrentPage);
-          }
-          static long timeLastUpdate = 0;
-
-          
     static uint8_t debounceBtn = 10;
     // Xử lý nút đếm
     if (digitalRead(COUNT0_BUTTON_PIN) == LOW) {
@@ -1452,29 +1404,29 @@ void loop() {
     }
 
     // Nhận dữ liệu từ LoRa E32 qua Serial1
-    // if (MySerial1.available() >= 12) { // id(1) + netid(1) + data(8) + cmnd(1) + padding(1)
-    //     uint8_t buf[12];
-    //     MySerial1.readBytes(buf, 12);
-    //     uint8_t id = buf[0];
-    //     uint8_t netid = buf[1];
-    //     uint8_t cmnd = buf[10];
-    //     if(id != 0xFF && netid != 0xFF) {
-    //         Serial.printf("Nhận dữ liệu từ LoRa E32: id=%d, netid=%d, cmnd=%d\n", id, netid, cmnd);
-    //     } else {
-    //         Serial.println("❌ Nhận dữ liệu không hợp lệ từ LoRa E32!");
-    //         return;
-    //     }
-    //     // uint8_t padding = buf[11]; // nếu có
-    //     if (cmnd == 1) { // data
-    //         count1 = buf[2];
-    //         count2 = buf[3];
-    //         count3 = buf[4];
-    //         showCurrentPage(CurrentPage);
-    //     } else if (cmnd == 2) { // config
-    //         // Xử lý cấu hình nếu cần
-    //         Serial.println("Nhận lệnh cấu hình LoRa E32");
-    //     }
-    // }
+    if (MySerial1.available() >= 12) { // id(1) + netid(1) + data(8) + cmnd(1) + padding(1)
+        uint8_t buf[12];
+        MySerial1.readBytes(buf, 12);
+        uint8_t id = buf[0];
+        uint8_t netid = buf[1];
+        uint8_t cmnd = buf[10];
+        if(id != 0xFF && netid != 0xFF) {
+            Serial.printf("Nhận dữ liệu từ LoRa E32: id=%d, netid=%d, cmnd=%d\n", id, netid, cmnd);
+        } else {
+            Serial.println("❌ Nhận dữ liệu không hợp lệ từ LoRa E32!");
+            return;
+        }
+        // uint8_t padding = buf[11]; // nếu có
+        if (cmnd == 1) { // data
+            count1 = buf[2];
+            count2 = buf[3];
+            count3 = buf[4];
+            showCurrentPage(CurrentPage);
+        } else if (cmnd == 2) { // config
+            // Xử lý cấu hình nếu cần
+            Serial.println("Nhận lệnh cấu hình LoRa E32");
+        }
+    }
 
     // Nhận chuỗi JSON qua Serial để cập nhật led-panel
     static String serialJson = "";

@@ -1,0 +1,26 @@
+#pragma once
+#include <Adafruit_GFX.h>
+const uint8_t BOD_PSTC6pt7bBitmaps[] PROGMEM = {
+  0x56, 0xDB, 0x6D, 0x40, 0xC9, 0x24, 0x92, 0xE0, 0xD6, 0x92, 0xA5, 0xE0,
+  0xF4, 0xB4, 0x6D, 0xC0, 0x26, 0x66, 0xAA, 0xF2, 0x70, 0xF2, 0x7A, 0x6D,
+  0x40, 0x76, 0xCF, 0x6D, 0x40, 0xF9, 0x22, 0x44, 0x44, 0x40, 0x76, 0xA5,
+  0x6D, 0xC0, 0x56, 0xDE, 0x6D, 0xC0 };
+
+const GFXglyph BOD_PSTC6pt7bGlyphs[] PROGMEM = {
+  {     0,   3,   9,   4,    0,   -8 },   // 0x30 '0'
+  {     4,   3,   9,   2,   -1,   -8 },   // 0x31 '1'
+  {     8,   3,   9,   4,    0,   -8 },   // 0x32 '2'
+  {    12,   3,   9,   4,    0,   -8 },   // 0x33 '3'
+  {    16,   4,   9,   4,    0,   -8 },   // 0x34 '4'
+  {    21,   3,   9,   4,    0,   -8 },   // 0x35 '5'
+  {    25,   3,   9,   4,    0,   -8 },   // 0x36 '6'
+  {    29,   4,   9,   4,    0,   -8 },   // 0x37 '7'
+  {    34,   3,   9,   4,    0,   -8 },   // 0x38 '8'
+  {    38,   3,   9,   4,    0,   -8 } }; // 0x39 '9'
+
+const GFXfont BOD_PSTC6pt7b PROGMEM = {
+  (uint8_t  *)BOD_PSTC6pt7bBitmaps,
+  (GFXglyph *)BOD_PSTC6pt7bGlyphs,
+  0x30, 0x39, 13 };
+
+// Approx. 119 bytes
