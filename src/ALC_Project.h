@@ -32,6 +32,7 @@ struct CounterConfig {
 };
 
 struct ProjectConfig {
+    char lineName[32]; // Project name
     uint8_t role;        // 0 = master, 1 = node
     uint8_t Device;          // LoRa ID (0-255)
     uint8_t channel;    // LoRa channel (0-255)

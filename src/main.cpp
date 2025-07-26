@@ -181,6 +181,8 @@ int numberContents[MAX_TEXT_LENGTH]; // Dùng để lưu số đếm, nếu có
 
 
 #include "ALC_Project.h"
+#include "WifiPostal.h"
+
 // void consolePrintln(const String& line) {
 //   Serial.println(line);
 // //   addConsoleLine(line + '\n');
@@ -1100,7 +1102,7 @@ void showCurrentPage(int currentPage) {
                     font3 = getFontByIndex(fontArr[2].as<int>());
                     font4 = getFontByIndex(fontArr[3].as<int>()); 
                     int8_t digits = countDigits(numberContents[i]);    
-                    // printLedPanel(1145,x,y,1,font1,color);
+                    // printLedPanel(8888,x+1,y,1,font4,color);
                     
 
                     if (digits == 1) printLedPanel(numberContents[i], x, y+1, 1, font1, color);
@@ -1318,7 +1320,12 @@ void setup() {
 
     Serial.begin(115200);
     // WiFi_AP_setup(server) ; // Khởi tạo WiFi AP
-    // delay(5000);
+    
+    webSocketServer.onEvent(webSocketEvent);      // Đăng ký sự kiện trước
+    server.addHandler(&webSocketServer);          // Thêm WebSocket vào server
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index_aP.html");
+
+    delay(5000);
     setup_littleFS();
     setup_WS(); // Khởi tạo WebSocket sau khi khởi tạo panel
 
@@ -1385,6 +1392,7 @@ void loop() {
     }
     lastModeBtn = modeBtn;
     ALC_loop(); 
+    // WiFi_AP_loop();
     for(uint8_t i = 0; i < 4; i++) {
       if(getResult(i) != counters[i]) {
         counters[i] = getResult(i);
@@ -2283,6 +2291,7 @@ void loop() {
 //----------------------------------------Defines the connected PIN between P5 and ESP32.
 // #define R1_PIN 19
 // #define G1_PIN 13
+
 // #define B1_PIN 18
 // #define R2_PIN 5
 // #define G2_PIN 12
