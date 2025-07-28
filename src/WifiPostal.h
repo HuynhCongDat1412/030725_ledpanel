@@ -833,13 +833,14 @@ void setUpWebserver(AsyncWebServer &server, const IPAddress &localIP) {
 	// return 404 to webpage icon
 	server.on("/favicon.ico", [](AsyncWebServerRequest *request) { request->send(404); });	// webpage icon
 
+    server.serveStatic("/", LittleFS, "/").setDefaultFile("index_aP.html");
 	// Serve Basic HTML Page
-	server.on("/", HTTP_ANY, [](AsyncWebServerRequest *request) {
-		AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
-		response->addHeader("Cache-Control", "public");  // save this file to cache for 1 year (unless you refresh)
-		request->send(response);
-		consolePrintln("Served Basic HTML Page");
-	});
+	// server.on("/", HTTP_ANY, [](AsyncWebServerRequest *request) {
+	// 	AsyncWebServerResponse *response = request->beginResponse(200, "text/html", index_html);
+	// 	response->addHeader("Cache-Control", "public");  // save this file to cache for 1 year (unless you refresh)
+	// 	request->send(response);
+	// 	consolePrintln("Served Basic HTML Page");
+	// });
   server.on("/history", HTTP_GET, [](AsyncWebServerRequest *request) {
     // handleHistory(request);
   });

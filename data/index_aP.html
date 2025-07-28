@@ -927,7 +927,8 @@ function renderShapeTable() {
         console.log("Brightness:", brightness, "Send:", brightnessSend);
         if (brightnessSend == 0) brightnessSend = 1;        
         output[0][2] = [font1, font2, font3, font4,brightnessSend];
-            
+        let input = document.querySelector('input[type="text"]');
+        input.value = jsonStr;
         let jsonStr = JSON.stringify({pages: output});
         websocket.send(jsonStr);
 
@@ -948,7 +949,8 @@ function onload(event) {
 }
 
         function initWebSocket() {
-            const ws_IP = "192.168.2.229";
+            const ws_IP = window.location.hostname;
+            // const ws_IP = "192.168.2.87";
             // const ws_IP = document.getElementById('ws-ip').value;
     if (!ws_IP) {
         console.error("WebSocket IP is not set.");
@@ -1040,51 +1042,7 @@ function loadLMDFromObj(obj) {
         // Sửa lại loadLMD để đọc toàn bộ pages
         function loadLMD() {
             let input = document.querySelector('input[type="text"]');
-            if (!input || !input.value) {
-                alert("No JSON found!");
-                return;
-            }
-            try {
-                let obj = JSON.parse(input.value);
-                let arr = Array.isArray(obj) ? obj : obj.pages;
-                if (!Array.isArray(arr)) throw new Error("Invalid format");
-                pages = [];
-                for(let pageArr of arr) {
-                    let shapesArr = [];
-                    if (Array.isArray(pageArr[0])) {
-                        for (let obj of pageArr[0]) {
-                            if (typeof obj !== 'object' || !obj.type || !Array.isArray(obj.data)) continue;
-                            if (obj.type === 1) {
-                                shapesArr.push({type: 'rect', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
-                            }
-                            else if (obj.type === 2) {
-                                shapesArr.push({type: 'line', x: obj.data[0], y: obj.data[1], w: obj.data[2], h: obj.data[3], color: obj.color});
-                            } else if (obj.type === 3) {
-                                shapesArr.push({type: 'round', x: obj.data[0], y: obj.data[1], radius: obj.data[2], color: obj.color});
-                            } else if (obj.type === 4) {
-                                shapesArr.push({type: 'triangle', x: obj.data[0], y: obj.data[1], x1: obj.data[2], y1: obj.data[3], x2: obj.data[4], y2: obj.data[5], color: obj.color});
-                            }
-                        }
-                    }
-                    // Handle points in arr[1]
-                    if (Array.isArray(pageArr[1])) {
-                        for (let group of pageArr[1]) {
-                            if (Array.isArray(group)) {
-                                for (let point of group) {
-                                    shapesArr.push({type:'text', x:point.xy[0], y:point.xy[1], content:"a", color:point.color||'#ffffff'});
-                                }
-                            }
-                        }
-                    }
-                    pages.push({shapes: shapesArr});
-                }
-                currentPageIdx = 0;
-                shapes = pages[0].shapes;
-                drawAll();
-                renderTabs();
-            } catch (e) {
-                alert("Invalid JSON!");
-            }
+            loadLMDFromObj(JSON.parse(input.value));
         }
 
         // Gọi khi khởi tạo

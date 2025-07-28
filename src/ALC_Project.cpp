@@ -528,16 +528,19 @@ void sendRequestTo(uint8_t targetID) {
   // Serial.printf("Master > Request to node %d [seq=%d]\n", targetID, packet.sequence);
 }
 
+extern bool getMsgRF = false;
 void checkReceive() {
   if (LoRaSerial.available() >= sizeof(LoraPacket)) {
+    
+      
     LoraPacket pkt;
     LoRaSerial.readBytes((uint8_t*)&pkt, sizeof(pkt));
     if (pkt.start == START_MARKER && pkt.cmd == CMD_RESPONSE && pkt.netID == gNetID) {
       uint8_t idx = pkt.deviceID - 1;
       if (idx < MAX_NODES) {
+        getMsgRF = true;
         connectQuality[idx] = min(4, connectQuality[idx] + 1);
         lastDataTime[idx] = millis();
-
         Serial.println();
         Serial.printf("Node %d replied (seq=%d): ", pkt.deviceID, pkt.sequence);
         Serial.println();
