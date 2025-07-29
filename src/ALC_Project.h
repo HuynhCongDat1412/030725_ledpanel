@@ -47,7 +47,7 @@ struct ProjectConfig {
 };
 
 
-
+extern bool getMsgRF;
 
 // Counter state
 struct CounterState {

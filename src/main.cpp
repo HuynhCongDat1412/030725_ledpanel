@@ -206,6 +206,26 @@ int TotalPages = 0;
 DynamicJsonDocument configDoc = loadConfig("/CONFIG.json");
 
 
+#define LOGO_HEIGHT   20
+#define LOGO_WIDTH    32
+// 'logo3', 128x64px
+const unsigned char epd_bitmap_logo_32x20 [] PROGMEM = {
+	0x00, 0x03, 0xf0, 0x00, 0x00, 0x07, 0xfc, 0x00, 0x00, 0x1f, 0xfe, 0x00, 0x03, 0xff, 0x3f, 0x00, 
+	0x0f, 0xfc, 0x0f, 0xb0, 0x1f, 0xf8, 0x07, 0xb8, 0x3f, 0xf8, 0x03, 0xbc, 0x7c, 0xf0, 0xe0, 0x1c, 
+	0x70, 0xf1, 0xe0, 0x1e, 0xf0, 0xe1, 0xe0, 0x0e, 0xf1, 0xe3, 0xc3, 0x0f, 0xe1, 0xc3, 0xc7, 0x8f, 
+	0xe1, 0xc7, 0x87, 0x8f, 0xf0, 0x07, 0x8f, 0x0e, 0xf0, 0x0f, 0x0f, 0x1e, 0x78, 0x1f, 0x1e, 0x3e, 
+	0x3e, 0x7e, 0x1e, 0xfc, 0x3f, 0xfc, 0x1f, 0xf8, 0x0f, 0xf8, 0x1f, 0xf0, 0x07, 0xe0, 0x0f, 0xc0
+};
+
+#define LOGO2_HEIGHT   20
+#define LOGO2_WIDTH    20
+
+const unsigned char epd_bitmap_logo2_20px [] PROGMEM = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x00, 0x00, 0xfc, 0x00, 0x01, 0xde, 0x00, 0x07, 
+	0xdf, 0x00, 0x03, 0xff, 0x80, 0x07, 0xff, 0x80, 0x06, 0x01, 0x80, 0x06, 0x01, 0x80, 0x03, 0x03, 
+	0x80, 0x01, 0x23, 0x80, 0x0d, 0xf7, 0x00, 0x0c, 0xf6, 0x00, 0x04, 0x9c, 0x00, 0x00, 0xee, 0x00, 
+	0x00, 0xfc, 0x00, 0x01, 0xfe, 0x00, 0x01, 0xfc, 0x00, 0x7e, 0x20, 0x00
+};
 void drawShapeFromType(DynamicJsonDocument dataIn) {
 
     if (!dataIn.is<JsonArray>() || dataIn.size() < 1) {
@@ -252,6 +272,13 @@ void drawShapeFromType(DynamicJsonDocument dataIn) {
     // Serial.println("Drawing complete.");
 }
 
+int16_t stringToColor(const String& hex) {
+
+    int r = strtol(hex.substring(1,3).c_str(), nullptr, 16);
+    int g = strtol(hex.substring(3,5).c_str(), nullptr, 16);
+    int b = strtol(hex.substring(5,7).c_str(), nullptr, 16);
+    return virtualDisp->color565(r, g, b);
+}
 DynamicJsonDocument parseStringToJSON(String jsonStr) {
     DynamicJsonDocument doc(8024);
     DeserializationError err = deserializeJson(doc, jsonStr);
@@ -505,11 +532,10 @@ const GFXfont* font1 = nullptr;
 const GFXfont* font2 = nullptr;
 const GFXfont* font3 = nullptr;
 const GFXfont* font4 = nullptr;
-
-int conStatus1 = 0;
-int conStatus2 = 0;
-int conStatus3 = 0;
-int conStatus4 = 0;
+int conStatus1 = 1;
+int conStatus2 = 1;
+int conStatus3 = 1;
+int conStatus4 = 1;
 
         static bool needSendConfigToClient = false;
         static AsyncWebSocketClient* pendingClient = nullptr;
@@ -546,7 +572,17 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
                     
                     }
                 }
-                
+                else if (doc.is<JsonObject>() && doc.containsKey("cmd") && doc["cmd"].is<String>()) {
+                    String cmd = doc["cmd"].as<String>();
+                    Serial.println("Nhận lệnh từ web: " + cmd);
+                    if (cmd == "bitmap") {
+                        // virtualDisp->drawBitmap(34, 0, epd_bitmap_logo2_20px, LOGO2_WIDTH, LOGO2_HEIGHT, myWHITE);
+                        JsonArray arr = doc["data"].as<JsonArray>();
+                        // arr[0] = 
+                        return;
+                    }
+                }
+
                 // Nếu là text mapping (mảng các object có "data" và "info")
                 else if (doc.is<JsonArray>() && doc[0].is<JsonObject>() && doc[0].containsKey("data") && doc[0].containsKey("info")) {
                     Serial.println("Tôi dang map data");
@@ -578,7 +614,7 @@ void webSocketEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEve
 }
 
 void setup_WS() {
-    defaultLedPanel();
+    // defaultLedPanel();
     Serial.println("=== Khởi tạo WebSocket ===");
     delay(1000);
     WiFi.mode(WIFI_STA);
@@ -911,6 +947,10 @@ uint8_t autoMiddle(uint8_t px, int number) {
 }
 
 void showCurrentPage(int currentPage) {
+    static uint16_t indexColor1 = myWHITE;
+    static uint16_t indexColor2 = myWHITE;
+    static uint16_t indexColor3 = myWHITE;
+    static uint16_t indexColor4 = myWHITE;
     JsonArray pages = JsonArray();
     // Serial.println("Page size: " + String(TotalPages));
     if (configDoc.is<JsonObject>() && configDoc.containsKey("pages") && configDoc["pages"].is<JsonArray>()) {
@@ -963,14 +1003,7 @@ void showCurrentPage(int currentPage) {
                 dma_display->setBrightness8(brightness);
                 // Serial.printf("Đã set brightness: %d\n", brightness);
             }
-            JsonArray connectionStatus = pages[currentPage][3].as<JsonArray>();
-            if (connectionStatus.size() >= 3) {
-                // conStatus1 = connectionStatus[0].as<int>();
-                // conStatus2 = connectionStatus[1].as<int>();
-                // conStatus3 = connectionStatus[2].as<int>();
-                // conStatus4 = connectionStatus[3].as<int>();
-                
-                }
+            
 
             if(currentPage == 0){
               
@@ -1059,6 +1092,12 @@ void showCurrentPage(int currentPage) {
                     font3 = getFontByIndex(fontArr[2].as<int>());
                     font4 = getFontByIndex(fontArr[3].as<int>()); 
                     int8_t digits = countDigits(numberContents[i]);    
+                    
+                    // hoặc doc["color"].as<String>()
+                    indexColor1 = stringToColor(fontArr[5].as<String>());
+                    indexColor2 = stringToColor(fontArr[6].as<String>());
+                    indexColor3 = stringToColor(fontArr[7].as<String>());  
+                    indexColor4 = stringToColor(fontArr[8].as<String>());
                     // printLedPanel(8888,x+1,y,1,font4,color);
                     
 
@@ -1067,6 +1106,20 @@ void showCurrentPage(int currentPage) {
                     if (digits == 3) printLedPanel(numberContents[i], x, y, 1, font3, color); //3 này ổn đấy
                     if (digits == 4) printLedPanel(numberContents[i], x, y, 1, font4, color);
                }
+                conStatus1 = swapConnectQuality(getConnectQuality(0));
+                conStatus2 = swapConnectQuality(getConnectQuality(1));
+                conStatus3 = swapConnectQuality(getConnectQuality(2));
+                conStatus4 = swapConnectQuality(getConnectQuality(3));
+                virtualDisp->drawLine(1, 7, 1, 7+3,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+                virtualDisp->drawLine(33, 7, 33, 7+3,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+                virtualDisp->drawLine(1, 24, 1, 24+3 ,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+                virtualDisp->drawLine(33, 24, 33, 24+3 ,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+
+                virtualDisp->drawLine(1, 7+conStatus1-1, 1, 7+3 , connectionStatusColor[conStatus1-1]);
+                virtualDisp->drawLine(33, 7+conStatus2-1, 33, 7+3 , connectionStatusColor[conStatus2-1]);
+                virtualDisp->drawLine(1, 24+conStatus3-1, 1, 24+3 ,connectionStatusColor[conStatus3-1]);
+                virtualDisp->drawLine(33, 24+conStatus4-1, 33, 24+3 , connectionStatusColor[conStatus4-1]);
+                
             }
         }
         // 7-8,7-14,7-24,7-30,38-8,38-14,38-24,38-30
@@ -1117,15 +1170,11 @@ void showCurrentPage(int currentPage) {
             }
             // Hiển thị đếm ở trang
         } 
-        GenNumber(1, 0, 1, 2, virtualDisp->color565(255, 115, 255));
-        GenNumber(2, 32, 1, 2, virtualDisp->color565(255, 115, 255));
-        GenNumber(3, 0, 17, 2,  virtualDisp->color565(255, 115, 255));
-        GenNumber(4, 32, 17, 2,  virtualDisp->color565(255, 115, 255));
+        GenNumber(1, 0, 1, 2, indexColor1);
+        GenNumber(2, 32, 1, 2, indexColor2);
+        GenNumber(3, 0, 17, 2,  indexColor3);
+        GenNumber(4, 32, 17, 2,  indexColor4);
 
-        virtualDisp->drawLine(1, 7+conStatus1-1, 1, 7+3 , connectionStatusColor[conStatus1-1]);
-        virtualDisp->drawLine(33, 7+conStatus2-1, 33, 7+3 , connectionStatusColor[conStatus2-1]);
-        virtualDisp->drawLine(1, 24+conStatus3-1, 1, 24+3 ,connectionStatusColor[conStatus3-1]);
-        virtualDisp->drawLine(33, 24+conStatus4-1, 33, 24+3 , connectionStatusColor[conStatus4-1]);
         // else {
         //     Serial.println("Không ở trang 1, không hiển thị đếm");
         // }
@@ -1272,21 +1321,14 @@ void exitConfigMode() {
 }
 
 void defaultLedPanel() {
-    // Thiết lập mặc định cho LED Panel
-  if (virtualDisp) {
-    Serial.println(">> Thiết lập LED Panel về mặc định");
-    virtualDisp->fillScreen(myBLACK);
-    virtualDisp->setTextColor(myWHITE);
-    virtualDisp->setTextSize(1);
-    virtualDisp->setFont(&FreeMono9pt7b);
-    virtualDisp->setCursor(4, 16);
-    virtualDisp->print("I Soft");
-    dma_display->flipDMABuffer();
-  }
-  else {
-      Serial.println("❌ Không thể thiết lập LED Panel, virtualDisp là nullptr.");
-  }
+    
+   virtualDisp->drawBitmap(16, 6, epd_bitmap_logo_32x20, LOGO_WIDTH, LOGO_HEIGHT, myWHITE);
+    // virtualDisp->drawBitmap(34, 0, epd_bitmap_logo2_20px, LOGO2_WIDTH, LOGO2_HEIGHT, myWHITE);
+    dma_display->flipDMABuffer(); // Cập nhật panel nếu cần
 }
+
+
+
 void setup() {
 
     Serial.begin(115200);
@@ -1305,6 +1347,9 @@ if (!virtualDisp || !dma_display) {
         Serial.println("❌ Khởi tạo panel thất bại. Không tiếp tục.");
         while (1) delay(1000);
     }
+    // drawMyBitmap32(0, 0, myWHITE);
+    
+    defaultLedPanel(); // Hiển thị hình ảnh khởi động nếu có
     ALC_setup(server);
     LORAE32.initLoRaE32(); // Khởi tạo LoRa E32
     LORAE32.API_Setup(server); // Thiết lập API cho LoRa E32  
@@ -1484,21 +1529,47 @@ void loop() {
         }
     }
 
+static uint32_t lastUpdateStatus = millis();
+if (millis() - lastUpdateStatus >= 5000){
+    lastUpdateStatus = millis();
 
-static unsigned long lastStatusTime = 0;
-unsigned long currentTime = millis();
-if (currentTime - lastStatusTime >= 3000) {
-  Serial.println("Get RF Status: " + String(getConnectQuality(0)) + " " + String(getConnectQuality(1)) + " " + String(getConnectQuality(2)) + " " + String(getConnectQuality(3)));
-    lastStatusTime = currentTime;
-    // if (getMsgRF == true){
+    // if (getMsgRF == true ) 
+    // {
+        conStatus1 = swapConnectQuality(getConnectQuality(0));
+        conStatus2 = swapConnectQuality(getConnectQuality(1));
+        conStatus3 = swapConnectQuality(getConnectQuality(2));
+        conStatus4 = swapConnectQuality(getConnectQuality(3));
+        
+        // getMsgRF = false;
+        Serial.println("✅ Updating RF status, time: " + String(millis() - lastUpdateStatus) + "ms");
+    // }
+    // else if (getMsgRF == false && getConnectQuality(0) == 1 && getConnectQuality(1) == 1 && getConnectQuality(2) == 1 && getConnectQuality(3) == 1) {
+    //     Serial.println("❌ Không có dữ liệu RF mới để cập nhật.");
     //     conStatus1 = swapConnectQuality(getConnectQuality(0));
     //     conStatus2 = swapConnectQuality(getConnectQuality(1));
     //     conStatus3 = swapConnectQuality(getConnectQuality(2));
     //     conStatus4 = swapConnectQuality(getConnectQuality(3));
-    //     showCurrentPage(CurrentPage);
-    // } 
-    //     getMsgRF = false;
     // }
+    virtualDisp->drawLine(1, 7, 1, 7+3,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+        virtualDisp->drawLine(33, 7, 33, 7+3,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+        virtualDisp->drawLine(1, 24, 1, 24+3 ,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+        virtualDisp->drawLine(33, 24, 33, 24+3 ,myBLACK ); // Xóa vùng số cũ trước khi vẽ số mới
+
+        virtualDisp->drawLine(1, 7+conStatus1-1, 1, 7+3 , connectionStatusColor[conStatus1-1]);
+        virtualDisp->drawLine(33, 7+conStatus2-1, 33, 7+3 , connectionStatusColor[conStatus2-1]);
+        virtualDisp->drawLine(1, 24+conStatus3-1, 1, 24+3 ,connectionStatusColor[conStatus3-1]);
+        virtualDisp->drawLine(33, 24+conStatus4-1, 33, 24+3 , connectionStatusColor[conStatus4-1]);
+    }
+
+
+
+static unsigned long lastStatusTime = 0;
+
+unsigned long currentTime = millis();
+if (currentTime - lastStatusTime >= 3000) {
+  Serial.println("Get RF Status: " + String(getConnectQuality(0)) + " " + String(getConnectQuality(1)) + " " + String(getConnectQuality(2)) + " " + String(getConnectQuality(3)));
+    lastStatusTime = currentTime;
+
     // RAM
     uint32_t freeHeap = ESP.getFreeHeap();
     uint32_t totalHeap = ESP.getHeapSize();

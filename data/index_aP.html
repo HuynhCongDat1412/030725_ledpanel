@@ -198,6 +198,14 @@ a:hover {
                 Panel Size: <input id="panelSize" type="range" min="1" max="15" value="15" onchange="resizeCanvas()">
             </label>
             <label>Brightness: <input id="brightness" class="configChange" type="range" min="0" max="100" value="40" style="width:180px;"></label>
+            <div class="adminConfig">
+            <label>Color for index 1:<select id="index-color1"  onchange="saveLMD()"></select></label>
+
+            <label>Color for index 2:<select id="index-color2" onchange="saveLMD()"></select></label>
+            <label>Color for index 3:<select id="index-color3"  onchange="saveLMD()"></select></label>
+            <label>Color for index 4: <select id="index-color4"  onchange="saveLMD()"></select></label>
+            </div>
+            
         
             <div id="loginModal" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;">
                 <div style="background:#fff;padding:24px;border-radius:8px;min-width:220px;margin:auto;display:flex;flex-direction:column;align-items:center;">
@@ -211,6 +219,7 @@ a:hover {
                 </div>
             </div>
         </div>
+        
         <div class="card adminConfig">
         <button class="btn" onclick="addShape('line')">Add Line</button>
         <button class="btn" onclick="addShape('rect')">Add Rect</button>
@@ -223,7 +232,7 @@ a:hover {
         <canvas id="lmdCanvas" width="640" height="320"></canvas>
         </div>
         <div class="card" id="tabsWrap">
-        <button class="btn" onclick="addTab()">+ Add Page</button>
+        <button class="btn adminConfig" onclick="addTab()">+ Add Page</button>
         <span id="tabs"></span>
         <table id="shapeTable" border="1" style="width:100%;margin-top:12px;">
             <thead>
@@ -330,8 +339,8 @@ a:hover {
             if (pw === 'admin') { // Đổi thành mật khẩu bạn muốn
                 document.getElementById('loginModal').style.display = 'none';
                 document.getElementById('logoutBtn').style.display = 'inline-block';
-                admin_visible();
                 isAdmin = true;
+                admin_visible();
             } else {
                 alert('Wrong password!');
                 document.getElementById('adminPassword').focus();
@@ -367,6 +376,7 @@ a:hover {
         <script>
 
         const colorOptionsHTML = `
+            <option value="#6ce7ffff" style="background:#6ce7ffff;color:#000;">Teal</option>
             <option value="#ff0000" style="background:#ff0000;color:#fff;">Red</option>
             <option value="#00ff00" style="background:#00ff00;color:#000;">Green</option>
             <option value="#0000ff" style="background:#0000ff;color:#fff;">Blue</option>
@@ -384,7 +394,6 @@ a:hover {
             <option value="#efa255ff" style="background:#efa255ff;color:#000;">Light Orange</option>
             <option value="#e896ffff" style="background:#8c559bff;color:#fff;">Purple</option>
             <option value="#c3c3c3ff" style="background:#c3c3c3ff;color:#000;">Gray</option>
-            <option value="#6ce7ffff" style="background:#6ce7ffff;color:#000;">Teal</option>
             <option value="#bb6e6eff" style="background:#bb6e6eff;color:#fff;">Brown</option>
         `;
             
@@ -593,6 +602,7 @@ function resizeCanvas() {
                 }
                 // Thay vì shapes.push(s), dùng:
                 pages[currentPageIdx].shapes.push(s);
+                shapes = pages[currentPageIdx].shapes;
                 drawAll();
                 document.body.removeChild(modal);
             };
@@ -701,7 +711,9 @@ function resizeCanvas() {
                 `;
             }
             document.getElementById('tabs').innerHTML = html;
+            admin_visible();
         }
+
 
         // Sửa lại deleteTab để nhận index
         function deleteTab(idx) {
@@ -723,11 +735,13 @@ function resizeCanvas() {
             renderTabs();
         }
         function addTab() {
-        pages.push({shapes:[]});
-        currentPageIdx = pages.length-1;
-        shapes = pages[currentPageIdx].shapes;
-        drawAll();
-        renderTabs();
+            pages.push({shapes:[]});
+            currentPageIdx = pages.length-1;
+            shapes = pages[currentPageIdx].shapes;
+            drawAll();
+            renderTabs();
+            saveLMD();
+
         }
 
         // Save/load shapes for current tab
@@ -771,6 +785,7 @@ function renderShapeTable() {
                 `;
                 tbody.appendChild(tr);
             });
+            admin_visible();
         }
         function editShape(idx) {
         // Mở modal chỉnh sửa shape trực tiếp (không giả lập click)
@@ -820,7 +835,7 @@ function renderShapeTable() {
         html += 
         `
             <div style="margin-top:12px;text-align:right;">
-                <button id="edit-ok" class="configChange">OK</button>
+                <button id="edit-ok">OK</button>
                 <button id="edit-delete" class="configChange adminConfig">Delete</button>
                 <button id="edit-cancel">Cancel</button>
             </div>
@@ -828,6 +843,7 @@ function renderShapeTable() {
         modal.innerHTML = html;
         document.body.appendChild(modal);
         document.getElementById('edit-ok').onclick = function() {
+            if (isAdmin){
             if(s.type=='rect' || s.type=='line' || s.type=='round' || s.type=='triangle' || s.type=='text') {
                 s.x = parseInt(document.getElementById('edit-x').value) || 0;
                 s.y = parseInt(document.getElementById('edit-y').value) || 0;
@@ -852,7 +868,9 @@ function renderShapeTable() {
             if(s.type=='text') {
                 s.content = document.getElementById('edit-content').value || '';
             }
+        }
             s.color = document.getElementById('edit-color').value || '#0f0';
+            saveLMD();
             drawAll();
             document.body.removeChild(modal);
         };
@@ -888,6 +906,10 @@ function renderShapeTable() {
             document.querySelectorAll('select.font-select').forEach(function(sel) {
                 sel.innerHTML = fontOptionsHTML;
             });
+            document.querySelector('#index-color1').innerHTML = colorOptionsHTML;
+            document.querySelector('#index-color2').innerHTML = colorOptionsHTML;
+            document.querySelector('#index-color3').innerHTML = colorOptionsHTML;
+            document.querySelector('#index-color4').innerHTML = colorOptionsHTML;
         });
         // Sửa lại saveLMD để lưu toàn bộ pages
     function saveLMD() {
@@ -899,14 +921,14 @@ function renderShapeTable() {
                     return {type: 1, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
                 }
                 else if (s.type === 'line') {
-                    return {type: 0, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
+                    return {type: 2, data: [s.x || 0, s.y || 0, s.w || 0, s.h || 0], color: s.color || '#ffffff'};
                 } else if (s.type === 'round') {
-                    return {type: 2, data: [s.x || 0, s.y || 0, s.radius || getRadius()], color: s.color || '#ffffff'};
+                    return {type: 3, data: [s.x || 0, s.y || 0, s.radius || getRadius()], color: s.color || '#ffffff'};
                 } else if (s.type === 'triangle') {
-                    return {type: 3, data: [s.x || 0, s.y || 0, s.x1 || 0, s.y1 || 0, s.x2 || 0, s.y2 || 0], color: s.color || '#ffffff'};
+                    return {type: 4, data: [s.x || 0, s.y || 0, s.x1 || 0, s.y1 || 0, s.x2 || 0, s.y2 || 0], color: s.color || '#ffffff'};
                 }
                 // Không return gì cho text hoặc shape không hợp lệ
-            }).filter(Boolean); // <-- Thêm dòng này
+            }).filter(Boolean);
 
             let arr2 = [];
             let textGroup = [];
@@ -918,18 +940,23 @@ function renderShapeTable() {
             if (textGroup.length) arr2.push(textGroup);
             output.push([arr1, arr2]);
         }
+        
         const font1 = document.getElementById('font1digit').selectedIndex;
         const font2 = document.getElementById('font2digits').selectedIndex;
         const font3 = document.getElementById('font3digits').selectedIndex;
         const font4 = document.getElementById('font4digits').selectedIndex;
         const brightness = parseInt(document.getElementById('brightness').value)||0;
-        let brightnessSend = Math.round(brightness*255/100);
+        let brightnessSend = Math.round(brightness*204/100);
         console.log("Brightness:", brightness, "Send:", brightnessSend);
-        if (brightnessSend == 0) brightnessSend = 1;        
-        output[0][2] = [font1, font2, font3, font4,brightnessSend];
+        const indexColor1 = document.getElementById('index-color1').value || '#ffffff';
+        const indexColor2 = document.getElementById('index-color2').value || '#ffffff';
+        const indexColor3 = document.getElementById('index-color3').value || '#ffffff';
+        const indexColor4 = document.getElementById('index-color4').value || '#ffffff';
+        output[0][2] = [font1, font2, font3, font4,brightnessSend, indexColor1, indexColor2, indexColor3, indexColor4];
+        let jsonStr = JSON.stringify({pages: output});
         let input = document.querySelector('input[type="text"]');
         input.value = jsonStr;
-        let jsonStr = JSON.stringify({pages: output});
+
         websocket.send(jsonStr);
 
         console.log("Saved LMD data:", jsonStr);
@@ -994,7 +1021,7 @@ function loadLMDFromObj(obj) {
         return;
     }
     pages = [];
-    setFonts(obj);
+    setConfigToWeb(obj);
     for(let pageArr of arr) {
         let shapesArr = [];
         if (Array.isArray(pageArr[0])) {
@@ -1029,7 +1056,6 @@ function loadLMDFromObj(obj) {
     
     drawAll();
     renderTabs();
-    let brightness = obj?.pages?.[0]?.[2]?.[4];
     if (typeof brightness !== "undefined") {
         // Chuyển về giá trị 0-100 nếu cần
         let brightnessValue = Math.round((brightness / 255) * 100);
@@ -1102,29 +1128,42 @@ function loadLMDFromObj(obj) {
             }
         }
         
-        function setFonts(obj) {
+        function setConfigToWeb(obj) {
             let font1 = document.getElementById('font1digit');
             let font2 = document.getElementById('font2digits');
             let font3 = document.getElementById('font3digits');
             let font4 = document.getElementById('font4digits');
             let input = document.querySelector('input[type="text"]');
-            let fontData = obj?.pages?.[0]?.[2] || [0, 0, 0, 0];
 
-            font1.selectedIndex = fontData[0] || 0;
-            font2.selectedIndex = fontData[1] || 0;
-            font3.selectedIndex = fontData[2] || 0;
-            font4.selectedIndex = fontData[3] || 0;
+            let configData = obj?.pages?.[0]?.[2] || [0, 0, 0, 0,0,0,0,0,0];
+
+            font1.selectedIndex = configData[0] || 0;
+            font2.selectedIndex = configData[1] || 0;
+            font3.selectedIndex = configData[2] || 0;
+            font4.selectedIndex = configData[3] || 0;
+
+            let brightness = document.getElementById('brightness');
+            brightness.value = configData[4] || 40;
+
+            let indexColor1 = document.getElementById('index-color1'); 
+            let indexColor2 = document.getElementById('index-color2'); 
+            let indexColor3 = document.getElementById('index-color3'); 
+            let indexColor4 = document.getElementById('index-color4');
+            indexColor1.selectedIndex = configData[5] || 0;
+            indexColor2.selectedIndex = configData[6] || 0;
+            indexColor3.selectedIndex = configData[7] || 0;
+            indexColor4.selectedIndex = configData[8] || 0; 
         }
 
         function admin_visible() {
             let adminConfigs = document.querySelectorAll('.adminConfig');
             adminConfigs.forEach(function(adminConfig) {
-                if (adminConfig.style.display === 'none' || adminConfig.style.display === '') {
-                    adminConfig.style.display = 'block';
-                } else {
-                    adminConfig.style.display = 'none';
-                }
+                adminConfig.style.display = isAdmin ? 'block' : 'none';
             });
+        }
+
+        function loadImage(event) {
+           
         }
         </script>
         <a href="/">Monitor</a>

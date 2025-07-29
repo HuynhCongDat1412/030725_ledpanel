@@ -528,7 +528,7 @@ void sendRequestTo(uint8_t targetID) {
   // Serial.printf("Master > Request to node %d [seq=%d]\n", targetID, packet.sequence);
 }
 
-extern bool getMsgRF = false;
+bool getMsgRF = false;
 void checkReceive() {
   if (LoRaSerial.available() >= sizeof(LoraPacket)) {
     
@@ -612,7 +612,7 @@ void printConnectState() {
 }
 
 void masterLoop() {
-  if (millis() - lastRequestTime > 900) {
+  if (millis() - lastRequestTime > 1000) {
     currentTarget = (currentTarget % MAX_NODES) + 1;
     sendRequestTo(currentTarget);
     lastRequestTime = millis();
