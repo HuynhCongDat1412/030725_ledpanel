@@ -254,22 +254,22 @@ a:hover {
         </div>
         <div class="card adminConfig">
             <Label>Font for 1 digit</Label>
-            <select class="font-select" id="font1digit">
+            <select class="font-select" id="font1digit" onchange="saveLMD()">
                 
             </select>
             <br>
             <Label>Font for 2 digits</Label>
-            <select class="font-select" id="font2digits">
+            <select class="font-select" onchange="saveLMD()" id="font2digits">
                 
             </select>
             <br>
             <Label>Font for 3 digits</Label>
-            <select class="font-select" id="font3digits">
+            <select class="font-select" onchange="saveLMD()" id="font3digits">
                 
             </select>
             <br>
             <Label>Font for 4 digits</Label>
-            <select class="font-select" id="font4digits">
+            <select class="font-select" onchange="saveLMD()" id="font4digits">
                 
             </select>
             <input type="button" value="Set Fonts" onclick="saveLMD()">

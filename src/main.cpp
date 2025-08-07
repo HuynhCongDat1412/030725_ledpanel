@@ -1,5 +1,3 @@
-
-
 #define USE_LMD_V1
 // #define USE_LMD_Master
 // #define USE_LMD_V2
@@ -1322,9 +1320,15 @@ void exitConfigMode() {
 
 void defaultLedPanel() {
     
-   virtualDisp->drawBitmap(16, 6, epd_bitmap_logo_32x20, LOGO_WIDTH, LOGO_HEIGHT, myWHITE);
+   virtualDisp->drawBitmap(16, 1, epd_bitmap_logo_32x20, LOGO_WIDTH, LOGO_HEIGHT, myWHITE);
     // virtualDisp->drawBitmap(34, 0, epd_bitmap_logo2_20px, LOGO2_WIDTH, LOGO2_HEIGHT, myWHITE);
+    virtualDisp->setTextColor(myWHITE);
+    virtualDisp->setFont(getFontByIndex(0));
+    virtualDisp->setTextSize(1);
+    virtualDisp->setCursor(2, 23);
+    virtualDisp->print("Loading...");
     dma_display->flipDMABuffer(); // Cập nhật panel nếu cần
+
 }
 
 
